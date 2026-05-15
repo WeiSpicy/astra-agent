@@ -3,12 +3,12 @@ from app.utils.logger import setup_logger
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
-logger = setup_logger("ask")
+logger = setup_logger("llm_client")
 
 llm = ChatOpenAI(
     api_key=DEEPSEEK_API_KEY,
     base_url=DEEPSEEK_BASE_URL,
-    model="deepseek-chat",
+    model="deepseek-v4-pro",
     temperature=0,
 )
 

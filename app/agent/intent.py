@@ -1,6 +1,19 @@
-def detect_intent(user_input: str) -> str:
-    if "查" in user_input or "介绍" in user_input:
-        return "rag"
-    if "计算" in user_input:
-        return "tool"
-    return "chat"
+from app.llm.intent_llm import intent_llm
+from app.utils.logger import setup_logger
+
+logger = setup_logger("intent")
+
+def detect_intent(text: str) -> str:
+    prompt = f"""
+    你是一个意图分类器，只输出一个词：
+    - 如果用户在问知识、解释、是什么、原理、定义 → 输出 rag
+    - 如果用户在要求计算、执行工具 → 输出 tool
+    - 其他情况 → 输出 chat
+
+    用户输入：{text}
+    只输出 rag/tool/chat
+    """
+    result = intent_llm.invoke(prompt)
+    logger.info(f"[Intent] input={text}, intent={result.content.strip()}")
+
+    return result.content.strip()

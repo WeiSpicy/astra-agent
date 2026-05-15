@@ -11,7 +11,7 @@ class AgentCore:
     def run(self, user_input: str):
         # 1. 意图识别
         intent = detect_intent(user_input)
-
+        
         # 2. RAG（如果意图是查知识）
         docs = []
         if intent == "rag":

@@ -6,7 +6,7 @@ logger = setup_logger("ask")
 router = APIRouter()
 agent = AgentCore()
 
-@router.post("/")
+@router.post("")
 def chat_endpoint(payload: dict):
     user_input = payload.get("question", "")
     result = agent.run(user_input)

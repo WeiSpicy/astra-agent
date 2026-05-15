@@ -10,3 +10,6 @@ wheels/
 .venv
 
 .env
+
+# 排除本地轻量化模型权重
+models/

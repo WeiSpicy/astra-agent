@@ -10,7 +10,7 @@ app = FastAPI(
 
 @app.get("/")
 def home():
-    return {"msg": "RAG PDF Bot"}
+    return {"msg": "O_o 主页是什么也没有的"}
 
 
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
