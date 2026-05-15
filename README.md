@@ -12,7 +12,7 @@ AstraAgent 是一个基于 FastAPI + LangChain/LlamaIndex 的轻量级 AI Agent 
 - OpenAI Compatible API
 - LangChain（探索中）
 - SQLite / FAISS
-- Python 3.13+
+- Python 3.11
 
 ## 功能特性
 - [ ] 对话管理
