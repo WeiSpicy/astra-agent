@@ -16,7 +16,7 @@ AstraAgent 是一个基于 FastAPI + LangChain/LlamaIndex 的轻量级 AI Agent 
 
 ## 功能特性
 - [ ] 对话管理
-- [ ] 意图识别
+- [√] 意图识别
 - [ ] RAG 知识问答
 - [ ] 自定义工具链（计算器、RAG、天气）
 - [ ] Agent 工作流
@@ -28,17 +28,26 @@ AstraAgent 是一个基于 FastAPI + LangChain/LlamaIndex 的轻量级 AI Agent 
 astra_agent/
   ├── app/
   │     ├── main.py
-  │     ├── router_chat.py
   │     ├── agent/
   │     │      ├── intent.py
   │     │      ├── tools.py
   │     │      ├── rag.py
-  │     │      └── agent_core.py
+  │     │      └── core.py
+  │     ├── llm/
+  │     │      ├── intent_llm.py
+  │     │      └── llm_client.py
+  │     ├── routers/            
+  │     │      └── chat.py
+  │     ├── utils/                  # 工具类
+  │     │      └── logger.py
   │     └── config.py
   ├── docs/
   │     └── architecture.md
   ├── data/
   │     └── sample_docs/
+  ├── models/                       # 模型存放目录
+  ├── .env                          # 环境变量  
+  │
   └── README.md
 ```
 
