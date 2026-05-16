@@ -1,48 +1,38 @@
+# app/agent/core.py
 from app.agent.intent import detect_intent
 from app.agent.memory import get_history, add_message
-from app.rag import retrieve
-from app.agent.tools import run_tool
-from app.llm.llm_client import chat_with_llm
-
+from app.agent.workflow_executor import run_workflow
 
 class AgentCore:
     def __init__(self):
         pass
 
-    def run(self, user_input: str):
-        # 1. 保存用户输入
-        add_message("user", user_input)
-        
-        # 2. 意图识别
-        intent = detect_intent(user_input)
-        
-        # 3. RAG（如果意图是查知识）
-        docs = []
-        if intent == "rag":
-            docs = retrieve(user_input)
+    async def run(self, user_input: str):
+        # 1. 意图识别
+        workflow_name = detect_intent(user_input)
 
-        # 4. 工具链（如果意图是工具）
-        tool_result = None
-        if intent == "tool":
-            tool_result = run_tool(user_input)
-            
-        # 5.获取对话历史
+        # 先记录用户消息
+        add_message("user", user_input)   # 每次用户说话都记录
+
+        # 2. 获取历史
         history = get_history()
 
-        # 6. 调用 LLM
-        answer = chat_with_llm(
+        # 3. 执行工作流
+        wf_result = await run_workflow(
             user_input=user_input,
-            history=history,
-            context_docs=docs,
-            tool_result=tool_result
+            history=history
         )
-        
-        # 7 保存 AI 回复
-        add_message("assistant", answer)
 
+        answer = wf_result.get("answer") or "抱歉，我暂时无法回答这个问题，请再试一次。"
+
+        # 4. 记忆管理
+        # 只有真正有意义的回答才记录（避免记录默认错误提示）
+        if wf_result.get("answer"):       # 关键：看原始返回里是否有 answer
+            add_message("assistant", answer)
+
+        # 5. 返回结果
         return {
-            "intent": intent,
-            "docs": docs,
-            "tool_result": tool_result,
+            "intent": wf_result.get("intent", workflow_name),
             "answer": answer,
+            "steps": wf_result.get("steps", []),
         }

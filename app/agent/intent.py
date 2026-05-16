@@ -4,18 +4,27 @@ from app.utils.logger import setup_logger
 logger = setup_logger("intent")
 
 def detect_intent(text: str) -> str:
-    prompt = prompt = f"""
-    你是一个意图分类器，只输出一个词：
+    prompt = f"""
+    你是一个精准的AI Agent意图路由器。
+    根据用户输入, 从以下4个标签中**只输出一个**: 
 
-    - 如果用户询问当前时间、日期、星期几、现在几点、今天几号等 → 输出 tool
-    - 如果用户在要求计算、执行工具 → 输出 tool
-    - 如果用户在问知识、解释、是什么、原理、定义 → 输出 rag
-    - 其他情况 → 输出 chat
+    - dynamic : 用户一句话包含多个不同动作或请求
+    - tool    : 单一命令式工具调用（计算、查时间、执行具体工具等）
+    - rag     : 询问知识、解释、原理、定义、技术概念
+    - chat    : 普通对话、闲聊、问候、情绪表达或其他
 
-    用户输入：{text}
-    只输出 rag/tool/chat
+    判断优先级（严格遵守）: 
+    1. 如果一句话包含两个及以上不同动作 → dynamic(最高优先级）
+    2. 单一明确工具调用 → tool
+    3. 询问知识/原理/解释 → rag
+    4. 其他全部归为 chat
+
+    用户输入: {text}
+
+    只输出一个单词: dynamic / tool / rag / chat,不要输出任何其他内容。
     """
+    
     result = intent_llm.invoke(prompt)
-    logger.info(f"[Intent] input={text}, intent={result.content.strip()}")
-
-    return result.content.strip()
+    intent_name = result.content.strip().lower()
+    logger.info(f"input={text} -> Selected Workflow={intent_name}")
+    return intent_name
