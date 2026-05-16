@@ -20,17 +20,25 @@ PROMPT = ChatPromptTemplate.from_messages([
     ("human", "{query}")
 ])
 
-def chat_with_llm(user_input: str, context_docs=None, tool_result=None):
+def chat_with_llm(user_input: str, history=None, context_docs=None, tool_result=None):
+    history = history or []
 
-    # 构造上下文
-    context_text = ""
+    messages = []
+
+    # 加入历史对话
+    for h in history:
+        messages.append({"role": h["role"], "content": h["content"]})
+
+    # 当前用户输入
+    messages.append({"role": "user", "content": user_input})
+
+    # 加入 RAG 文档
     if context_docs:
-        context_text += "\n\n".join(context_docs)
+        messages.append({"role": "system", "content": f"相关文档：{context_docs}"})
+
+    # 加入工具结果
     if tool_result:
-        context_text += f"\n\n工具结果：{tool_result}"
+        messages.append({"role": "system", "content": f"工具结果：{tool_result}"})
 
-    final_query = f"{context_text}\n\n用户问题：{user_input}"
-
-    prompt = PROMPT.format(query=final_query)
-    result = llm.invoke(prompt)
+    result = llm.invoke(messages)
     return result.content

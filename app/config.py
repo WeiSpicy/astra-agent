@@ -9,3 +9,6 @@ load_dotenv(dotenv_path=env_path)
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 # 请确保 .env里面填写了 key
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+
+# 历史对话的长度
+MAX_HISTORY = int(os.getenv("MAX_HISTORY", 5))
