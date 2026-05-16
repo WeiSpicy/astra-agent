@@ -18,7 +18,7 @@ AstraAgent 是一个基于 FastAPI + LangChain/LlamaIndex 的轻量级 AI Agent 
 - [ ] 对话管理
 - [√] 意图识别
 - [ ] RAG 知识问答
-- [ ] 自定义工具链（计算器、RAG、天气）
+- [ ] 自定义工具链（计算器、时间日期）
 - [ ] Agent 工作流
 - [ ] REST API
 

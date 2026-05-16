@@ -1,4 +1,4 @@
-from app.llm.llm_client import llm
+from app.llm.llm_client import chat_llm
 
 def parse_tool_call(user_input: str):
     """
@@ -25,5 +25,5 @@ def parse_tool_call(user_input: str):
     只输出 JSON, 不要解释。
     """
 
-    result = llm.invoke(prompt)
+    result = chat_llm.invoke(prompt)
     return result.content

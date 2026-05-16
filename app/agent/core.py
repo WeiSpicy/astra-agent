@@ -1,6 +1,6 @@
 from app.agent.intent import detect_intent
 from app.agent.memory import get_history, add_message
-from app.agent.rag import rag_query
+from app.rag import retrieve
 from app.agent.tools import run_tool
 from app.llm.llm_client import chat_with_llm
 
@@ -19,7 +19,7 @@ class AgentCore:
         # 3. RAG（如果意图是查知识）
         docs = []
         if intent == "rag":
-            docs = rag_query(user_input)
+            docs = retrieve(user_input)
 
         # 4. 工具链（如果意图是工具）
         tool_result = None

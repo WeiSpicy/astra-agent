@@ -12,3 +12,5 @@ DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 
 # 历史对话的长度
 MAX_HISTORY = int(os.getenv("MAX_HISTORY", 5))
+
+CORS_ALLOW_ORIGIN = os.environ.get("CORS_ALLOW_ORIGIN", "*").split(";")

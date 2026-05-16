@@ -5,7 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 logger = setup_logger("llm_client")
 
-llm = ChatOpenAI(
+chat_llm = ChatOpenAI(
     api_key=DEEPSEEK_API_KEY,
     base_url=DEEPSEEK_BASE_URL,
     model="deepseek-v4-pro",
@@ -40,5 +40,5 @@ def chat_with_llm(user_input: str, history=None, context_docs=None, tool_result=
     if tool_result:
         messages.append({"role": "system", "content": f"工具结果：{tool_result}"})
 
-    result = llm.invoke(messages)
+    result = chat_llm.invoke(messages)
     return result.content
