@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.config import CORS_ALLOW_ORIGIN
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import chat
+from app.routers import chat, rag, tool, upload
 from app.utils.logger import setup_logger
 from app.rag import init_vectorstore
 
@@ -42,4 +42,7 @@ def home():
 async def healthcheck():
     return {"status": True}
 
-app.include_router(chat.router, prefix="/chat", tags=["chat"])
+app.include_router(chat.router, prefix="/api/v1/chat", tags=["chat"])
+app.include_router(rag.router, prefix="/api/v1/rag", tags=["rag"])
+app.include_router(tool.router, prefix="/api/v1/tool", tags=["tool"])
+app.include_router(upload.router, prefix="/api/v1/upload", tags=["upload"])

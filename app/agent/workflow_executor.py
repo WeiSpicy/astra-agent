@@ -23,7 +23,7 @@ async def run_workflow(user_input: str, history: list) -> dict:
         "user_input": user_input,
         "history": history,
         "docs": [],
-        "tool_result": None,
+        "tool_results_map": {},
         "llm_result": None,
     }
     steps_output = []
@@ -40,7 +40,7 @@ async def run_workflow(user_input: str, history: list) -> dict:
                 tool_input = json.dumps({"tool": tool_name, "args": args})
                 result = run_tool(tool_input)
 
-                context["tool_result"] = result
+                context["tool_results_map"][tool_name] = result
                 steps_output.append({"type": "tool", "tool": tool_name, "output": result})
 
             elif step_type == "rag":
@@ -55,7 +55,7 @@ async def run_workflow(user_input: str, history: list) -> dict:
                     user_input=f"{prompt}\n当前用户问题: {context['user_input']}",
                     history=context["history"],
                     context_docs=context.get("docs", []),
-                    tool_result=context.get("tool_result"),
+                    tool_result=context.get("tool_results_map"),
                 )
                 context["llm_result"] = answer
                 steps_output.append({"type": "llm", "output": answer})

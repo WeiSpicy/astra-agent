@@ -11,10 +11,10 @@ def plan_steps(user_input: str):
     prompt = f"""你是一个严格的AI Agent Planner。
     用户输入: {user_input}
 
-    可用工具: calc(计算器), now(当前时间)
+    可用工具: calc(计算器), now(当前时间), weather(city): 查询某个城市的实时天气
 
     可用步骤类型:
-    - tool: 调用工具(calc, now)
+    - tool: 调用工具(calc, now, weather)
     - rag : 知识检索(询问概念、原理、定义、技术框架、如何使用等)
     - llm : 最终总结或普通对话
 
@@ -22,15 +22,16 @@ def plan_steps(user_input: str):
     1. 如果包含计算、时间等明确工具动作 → 优先 tool
     2. 如果用户在**询问知识、概念、原理、定义、技术框架**(如 FastAPI是什么、Redis为什么快、GIL是什么)→ 必须使用 rag
     3. 如果有多个动作 → 拆分成多个步骤
-    4. 最后一般需要一个 llm 步骤做友好总结
+    4. 最后一般需要一个 llm 步骤做友好总结, 不要忽略任何工具的输出结果
 
     输出严格JSON数组, 不要任何其他文字:
 
     示例:
     [
-    {{"type": "tool", "tool": "calc", "args": {{"expression": "89*89"}}}},
-    {{"type": "rag", "query": "FastAPI是什么"}},
-    {{"type": "llm", "prompt": "用友好语气总结"}}
+        {{"type": "tool", "tool": "calc", "args": {{"expression": "89*89"}}}},
+        {{"type": "rag", "query": "FastAPI是什么"}},
+        {{"type": "llm", "prompt": "用友好语气总结"}},
+        {{"type": "tool", "tool": "weather", "args": {{"city": "北京"}}}}
     ]
 
     """

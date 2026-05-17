@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from app.rag.loader import load_docs_from_dir
 from app.rag.vector_store import (
     build_vectorstore,
@@ -7,7 +9,7 @@ from app.rag.vector_store import (
 
 from app.utils.logger import setup_logger
 from app.llm.llm_client import chat_llm
-
+from app.config import KNOWLEDGE_DIR
 
 logger = setup_logger("RAG Pipeline")
 
@@ -17,8 +19,7 @@ logger = setup_logger("RAG Pipeline")
 # 不存在则自动构建
 # -----------------------------------
 
-def init_vectorstore(doc_dir="docs"):
-
+def init_vectorstore(knowledge_dir=KNOWLEDGE_DIR):
     vectorstore = load_vectorstore()
 
     if vectorstore is not None:
@@ -26,9 +27,8 @@ def init_vectorstore(doc_dir="docs"):
         return vectorstore
 
     logger.info("本地向量库不存在，开始构建...")
-
-    docs = load_docs_from_dir(doc_dir)
-
+    
+    docs = load_docs_from_dir(knowledge_dir)
     vectorstore = build_vectorstore(docs)
 
     logger.info("向量库构建完成")
