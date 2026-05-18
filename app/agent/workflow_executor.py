@@ -25,7 +25,7 @@ async def run_workflow(user_input: str, history: list) -> dict:
         "user_input": user_input,
         "history": history,
         "docs": [],
-        "tool_results_map": {},
+        "tool_results_map": [],
         "llm_result": None,
     }
     steps_output = []
@@ -42,7 +42,9 @@ async def run_workflow(user_input: str, history: list) -> dict:
                 tool_input = json.dumps({"tool": tool_name, "args": args})
                 result = run_tool(tool_input)
 
-                context["tool_results_map"][tool_name] = result
+                context["tool_results_map"].append(
+                    {"tool": tool_name, "args": args, "result": result}
+                )
                 steps_output.append(
                     {"type": "tool", "tool": tool_name, "output": result}
                 )
@@ -97,7 +99,7 @@ async def run_workflow_stream(user_input: str, history: list):
         "user_input": user_input,
         "history": history,
         "docs": [],
-        "tool_results_map": {},
+        "tool_results_map": [],
         "llm_result": None,
     }
 
@@ -125,7 +127,9 @@ async def run_workflow_stream(user_input: str, history: list):
                 tool_input = json.dumps({"tool": tool_name, "args": args})
                 result = run_tool(tool_input)
 
-                context["tool_results_map"][tool_name] = result
+                context["tool_results_map"].append(
+                    {"tool": tool_name, "args": args, "result": result}
+                )
 
                 yield SSEEvent(
                     event="tool_result",
@@ -159,12 +163,17 @@ async def run_workflow_stream(user_input: str, history: list):
 
                 prompt = step.get("prompt", "")
                 full_answer = ""
-
+                tool_result = context.get("tool_results_map", [])
+                tool_result_str = json.dumps(
+                    tool_result,
+                    ensure_ascii=False,
+                    indent=2
+                )
                 async for event in stream_chat_llm(
                     user_input=f"{prompt}\n当前用户问题: {context['user_input']}",
                     history=context["history"],
                     context_docs=context.get("docs", []),
-                    tool_result=context.get("tool_results_map"),
+                    tool_result=tool_result_str,
                 ):
 
                     # token
@@ -181,7 +190,6 @@ async def run_workflow_stream(user_input: str, history: list):
                     # error
                     elif event["event"] == "error":
                         yield event
-
 
         except Exception as e:
             logger.exception(f"步骤执行失败: {step_type}")

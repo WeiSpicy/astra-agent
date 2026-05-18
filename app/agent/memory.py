@@ -3,7 +3,7 @@
 from app.config import MAX_HISTORY
 from collections import deque
 
-# 保存最近 5 轮对话
+# 保存最近 15 轮对话
 conversation_history = deque(maxlen=MAX_HISTORY)
 
 def add_message(role: str, content: str):
@@ -11,3 +11,7 @@ def add_message(role: str, content: str):
 
 def get_history():
     return list(conversation_history)
+
+def get_recent(limit: int = 10):
+    history = list(conversation_history)
+    return history[-limit:]

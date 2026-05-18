@@ -13,7 +13,7 @@ DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 
 # 历史对话的长度
-MAX_HISTORY = int(os.getenv("MAX_HISTORY", 5))
+MAX_HISTORY = int(os.getenv("MAX_HISTORY", 15))
 
 # 知识库存放的位置
 KNOWLEDGE_DIR = BASE_DIR / os.getenv("KNOWLEDGE_DIR", "data/knowledge")
