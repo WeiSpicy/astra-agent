@@ -46,11 +46,11 @@ def plan_steps(user_input: str):
             content = content.split("```")[1].strip()
             
         steps = json.loads(content)
-        logger.info(f"Planner 成功生成步骤: {steps}")
+        logger.info(f"成功生成步骤: {steps}")
         return steps
         
     except Exception as e:
-        logger.error(f"Planner 生成失败: {e}\n输出内容: {result.content if 'result' in locals() else 'None'}")
+        logger.error(f"生成失败: {e}\n输出内容: {result.content if 'result' in locals() else 'None'}")
         # 降级处理
         return [
             {"type": "llm", "prompt": f"直接回答用户问题: {user_input}"}
