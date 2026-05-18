@@ -9,7 +9,7 @@ def calc(expression: str):
 
     try:
         result = eval(expression)
-        logger.info(f"calc 结果: {result}")
+        logger.info(f"计算结果: {result}")
         return str(result)
     except Exception:
         return "计算失败，请检查表达式格式。"
