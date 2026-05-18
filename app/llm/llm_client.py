@@ -12,19 +12,25 @@ chat_llm = ChatOpenAI(
     temperature=0,
 )
 
-PROMPT = ChatPromptTemplate.from_messages([
-    ("system", 
-     "你是一个专业的 AI 助手。\n"
-     "如果提供了 context_docs, 请优先基于它回答。\n"
-     "如果提供了 tool_result, 请结合工具结果回答。\n"),
-    ("human", "{query}")
-])
+SYSTEM_PROMPT = """
+你是一个专业的 AI 助手。
 
+规则：
+1. 如果提供了 context_docs, 请优先基于知识库回答
+2. 如果提供了 tool_result, 请结合工具结果回答
+3. 如果知识库没有相关信息，请明确说明
+4. 不要编造不存在的信息
+"""
 def chat_with_llm(user_input: str, history=None, context_docs=None, tool_result=None):
     history = history or []
 
     messages = []
 
+    messages.append({
+        "role": "system",
+        "content": SYSTEM_PROMPT,
+    })
+    
     # 加入历史对话
     for h in history:
         messages.append({"role": h["role"], "content": h["content"]})

@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-import time
 import json
 import sseclient
 
@@ -108,6 +107,17 @@ unified_css = f"""
 @keyframes loading-dots {{
     0%, 80%, 100% {{ transform: scale(0); }}
     40% {{ transform: scale(1); }}
+}}
+
+<style>
+.cursor {{
+    animation: blink 1s infinite;
+}}
+
+@keyframes blink {{
+    0% {{ opacity: 1; }}
+    50% {{ opacity: 0; }}
+    100% {{ opacity: 1; }}
 }}
 </style>
 """
@@ -285,8 +295,21 @@ if prompt:
 
         elif event_type in ["tool_result", "rag_result", "steps"]:
             render_status(status_placeholder, content, is_loading=False)
-
-        elif event_type in ["llm_result", "final"]:
+        elif event_type == "token":
+            full_answer += content
+            
+            answer_placeholder.markdown(
+                f"""
+                <div class="chat-row">
+                    <div class="chat-bubble assistant-bubble">
+                        {full_answer}<span class="cursor">|</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            
+        elif event_type == "final":
             full_answer = content
             answer_placeholder.markdown(
                 f"""

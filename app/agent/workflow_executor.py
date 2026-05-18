@@ -5,6 +5,7 @@ from app.agent.planner import plan_steps
 from app.model.sse import SSEEvent
 from app.rag import retrieve
 from app.llm.llm_client import chat_with_llm
+from app.llm.stream_llm import stream_chat_llm
 from app.utils import setup_logger
 
 logger = setup_logger("Agent workflow")
@@ -150,25 +151,37 @@ async def run_workflow_stream(user_input: str, history: list):
                 ).model_dump()
 
             elif step_type == "llm":
+
                 yield SSEEvent(
                     event="llm_start",
                     content="正在生成最终回答...",
                 ).model_dump()
 
                 prompt = step.get("prompt", "")
-                answer = chat_with_llm(
+                full_answer = ""
+
+                async for event in stream_chat_llm(
                     user_input=f"{prompt}\n当前用户问题: {context['user_input']}",
                     history=context["history"],
                     context_docs=context.get("docs", []),
                     tool_result=context.get("tool_results_map"),
-                )
-                context["llm_result"] = answer
+                ):
 
-                yield SSEEvent(
-                    event="llm_result",
-                    content=answer,  # 这里直接把答案作为 content
-                    data={"output": answer},
-                ).model_dump()
+                    # token
+                    if event["event"] == "token":
+
+                        full_answer += event["content"]
+
+                        yield event
+
+                    # done
+                    elif event["event"] == "done":
+                        context["llm_result"] = full_answer
+
+                    # error
+                    elif event["event"] == "error":
+                        yield event
+
 
         except Exception as e:
             logger.exception(f"步骤执行失败: {step_type}")
