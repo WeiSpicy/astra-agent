@@ -1,4 +1,5 @@
 import os
+import threading
 from typing import List, Dict
 
 from langchain_community.embeddings import FastEmbedEmbeddings
@@ -7,119 +8,97 @@ from langchain_community.vectorstores import FAISS
 from app.rag.config import VECTOR_STORE_DIR
 from app.utils.logger import setup_logger
 
-# 职责: 基于基于 LangChain FAISS 实现 embedding + FAISS persistence +retrieval
-
-# -----------------------------------
-# Embedding Model
-# -----------------------------------
-
-embeddings = FastEmbedEmbeddings(
-    model_name="BAAI/bge-small-zh-v1.5",
-    cache_dir="./models",
-)
-
-_VECTORSTORE = None
 logger = setup_logger("Rag vector_store")
 
-# -----------------------------------
-# 构建向量库
-# docs:
-# [
-#   {
-#       "content": "...",
-#       "source": "...",
-#       "path": "...",
-#       "chunk_id": 0,
-#   }
-# ]
-# -----------------------------------
+class VectorStoreManager:
+    _instance = None
+    _lock = threading.Lock()
 
-def build_vectorstore(docs: List[Dict]) -> FAISS:
-    """构建 FAISS 向量库"""
-    
-    if not docs:
-        logger.warning("没有找到任何文档，将创建一个默认空向量库")
-        # 创建一个默认文档，避免完全空的向量库导致后续错误
-        default_texts = ["这是一个默认的空知识库。目前还没有上传任何文档。请先上传文档后再进行查询。"]
-        default_metadatas = [{"source": "default_empty", "path": "empty", "chunk_id": 0}]
-        
-        vectorstore = FAISS.from_texts(
-            texts=default_texts,
-            embedding=embeddings,
-            metadatas=default_metadatas,
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            with cls._lock:
+                if not cls._instance:
+                    cls._instance = super(VectorStoreManager, cls).__new__(cls)
+                    cls._instance._initialize()
+        return cls._instance
+
+    def _initialize(self):
+        logger.info("初始化 VectorStoreManager 单例...")
+        self.embeddings = FastEmbedEmbeddings(
+            model_name="BAAI/bge-small-zh-v1.5",
+            cache_dir="./models",
         )
-        vectorstore.save_local(VECTOR_STORE_DIR)
-        logger.info("已创建默认空向量库")
-        return vectorstore
-    
-    texts = [doc["content"] for doc in docs]
+        self._vectorstore = self._load_vectorstore()
 
-    metadatas = [
-        {
-            "source": doc["source"],
-            "path": doc["path"],
-            "chunk_id": doc["chunk_id"],
-        }
-        for doc in docs
-    ]
+    def _load_vectorstore(self) -> FAISS | None:
+        if not (os.path.exists(os.path.join(VECTOR_STORE_DIR, "index.faiss")) and 
+                os.path.exists(os.path.join(VECTOR_STORE_DIR, "index.pkl"))):
+            return None
+        return FAISS.load_local(VECTOR_STORE_DIR, self.embeddings, allow_dangerous_deserialization=True)
 
-    vectorstore = FAISS.from_texts(
-        texts=texts,
-        embedding=embeddings,
-        metadatas=metadatas,
-    )
+    def get_vectorstore(self):
+        if self._vectorstore is None:
+            with self._lock:
+                if self._vectorstore is None:
+                    self._vectorstore = self._load_vectorstore()
+        return self._vectorstore
 
-    # 持久化保存
-    vectorstore.save_local(VECTOR_STORE_DIR)
-    
-    return vectorstore
+    def add_documents(self, docs: List[Dict], progress_callback=None, batch_size: int = 256, is_rebuild: bool = False):
+        """
+        统一的文档写入方法。
+        :param is_rebuild: 如果为 True, 则清空当前库, 重新全量构建；为 False 则代表增量追加。
+        """
+        # 如果文档为空则初始化一个默认空库
+        if not docs:
+            logger.warning("没有找到任何文档，将创建一个默认空向量库")
+            vectorstore = FAISS.from_texts(
+                texts=["这是一个默认的空知识库。目前还没有上传任何文档。"],
+                embedding=self.embeddings,
+                metadatas=[{"source": "default_empty", "path": "empty", "chunk_id": 0}],
+            )
+            vectorstore.save_local(VECTOR_STORE_DIR)
+            self._vectorstore = vectorstore
+            if progress_callback: progress_callback(100)
+            return vectorstore
 
-def rebuild_vectorstore(docs: List[Dict]):
-    global _VECTORSTORE
-    _VECTORSTORE = build_vectorstore(docs)
+        if progress_callback: progress_callback(10)
 
-# -----------------------------------
-# 加载向量库
-# -----------------------------------
-
-def load_vectorstore() -> FAISS | None:
-
-    if not (
-        os.path.exists(os.path.join(VECTOR_STORE_DIR, "index.faiss")) and
-        os.path.exists(os.path.join(VECTOR_STORE_DIR, "index.pkl"))
-    ):
-        return None
-
-    return FAISS.load_local(
-        VECTOR_STORE_DIR,
-        embeddings,
-        allow_dangerous_deserialization=True,
-    )
-
-def get_vectorstore():
-    global _VECTORSTORE
-    
-    if _VECTORSTORE is None:
-        _VECTORSTORE = load_vectorstore()
+        # 统一准备数据并进行批量向量化
+        texts = [doc["content"] for doc in docs]
+        metadatas = [{"source": doc["source"], "path": doc["path"], "chunk_id": doc["chunk_id"]} for doc in docs]
         
-    return _VECTORSTORE
+        vectors = self.embeddings.embed_documents(texts)
+        text_embeddings = list(zip(texts, vectors))
+        total = len(texts)
 
+        # 决定是增量还是全量重构
+        vectorstore = None if is_rebuild else self.get_vectorstore()
 
-# -----------------------------------
-# 检索
-# -----------------------------------
+        # 分批写入内存
+        for i in range(0, total, batch_size):
+            end_idx = min(i + batch_size, total)
+            batch_data = text_embeddings[i:end_idx]
+            batch_metas = metadatas[i:end_idx]
 
-def search_docs(query: str, top_k: int = 3):
+            if vectorstore is None:
+                vectorstore = FAISS.from_embeddings(batch_data, self.embeddings, batch_metas)
+            else:
+                vectorstore.add_embeddings(batch_data, batch_metas)
 
-    vectorstore = get_vectorstore()
+            if progress_callback:
+                p = 10 + int((end_idx / total) * 90)
+                progress_callback(p)
 
-    if vectorstore is None:
-        logger.error("请检查向量数据库是否正常构建")
-        return []
+        # 统一持久化与更新状态
+        vectorstore.save_local(VECTOR_STORE_DIR)
+        self._vectorstore = vectorstore
+        return vectorstore
 
-    results = vectorstore.similarity_search(
-        query=query,
-        k=top_k,
-    )
+    def search_docs(self, query: str, top_k: int = 3):
+        vectorstore = self.get_vectorstore()
+        if vectorstore is None:
+            logger.error("请检查向量数据库是否正常构建")
+            return []
+        return vectorstore.similarity_search(query=query, k=top_k)
 
-    return results
+vector_manager = VectorStoreManager()

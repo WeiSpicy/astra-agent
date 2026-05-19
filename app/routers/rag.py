@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from app.model.rag import RAGQueryRequest, RagResponse
 from app.rag.rag_pipeline import retrieve, rag_answer
+from app.rag.vector_store import vector_manager
 from app.utils.logger import setup_logger
 
 router = APIRouter()
@@ -45,3 +46,54 @@ async def rag_retrieve(request: RAGQueryRequest):
     except Exception as e:
         logger.exception("RAG 检索失败")
         raise HTTPException(status_code=500, detail=str(e))
+    
+    
+@router.get("/debug/vectorstore")
+async def debug_vectorstore(limit: int = 20):
+    """
+    查看当前向量库中的 chunk 数据
+    """
+
+    try:
+
+        vectorstore = vector_manager.get_vectorstore()
+
+        if vectorstore is None:
+            return {
+                "loaded": False,
+                "message": "向量库未加载"
+            }
+
+        # LangChain FAISS 内部 docstore
+        docs = vectorstore.docstore._dict
+
+        results = []
+
+        for i, (doc_id, doc) in enumerate(docs.items()):
+
+            if i >= limit:
+                break
+
+            results.append({
+                "doc_id": doc_id,
+                "content_preview": (
+                    doc.page_content[:200] + "..."
+                    if len(doc.page_content) > 200
+                    else doc.page_content
+                ),
+                "metadata": doc.metadata,
+            })
+
+        return {
+            "loaded": True,
+            "total_chunks": len(docs),
+            "showing": len(results),
+            "chunks": results,
+        }
+
+    except Exception as e:
+        logger.exception("查看向量库失败")
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )

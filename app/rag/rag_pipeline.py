@@ -1,62 +1,41 @@
-from pathlib import Path
-
 from app.rag.loader import load_docs_from_dir
-from app.rag.vector_store import (
-    build_vectorstore,
-    load_vectorstore,
-    search_docs,
-)
-
+from app.rag.vector_store import vector_manager
 from app.utils.logger import setup_logger
 from app.llm.llm_client import chat_llm
 from app.config import KNOWLEDGE_DIR
 
 logger = setup_logger("RAG Pipeline")
 
-
-# -----------------------------------
-# 初始化向量库
-# 不存在则自动构建
-# -----------------------------------
-
 def init_vectorstore(knowledge_dir=KNOWLEDGE_DIR):
-    vectorstore = load_vectorstore()
-
-    if vectorstore is not None:
-        logger.info("已加载本地向量库")
-        return vectorstore
-
-    logger.info("本地向量库不存在，开始构建...")
+    """初始化向量库 (FastAPI lifespan 调用)"""
     
+    # 检查单例是否已经成功从磁盘加载了现有向量库
+    if vector_manager.get_vectorstore() is not None:
+        logger.info("已加载本地已有向量库")
+        return
+
+    logger.info("本地向量库不存在，开始从本地目录扫描构建...")
     docs = load_docs_from_dir(knowledge_dir)
-    vectorstore = build_vectorstore(docs)
-
-    logger.info("向量库构建完成")
-
-    return vectorstore
-
+    
+    # 统一直接调用单例的 add_documents 接口完成首次全量构建
+    vector_manager.add_documents(docs)
+    logger.info("本地向量库冷启动全量构建完成")
 
 # -----------------------------------
-# RAG Retrieval
+# RAG Retrieval & Answer
 # -----------------------------------
-
 def retrieve(question: str, top_k: int = 3):
 
-    results = search_docs(
+    results = vector_manager.search_docs(
         query=question,
         top_k=top_k,
     )
 
     return results
 
-
-# -----------------------------------
-# RAG Answer
-# -----------------------------------
-
 def rag_answer(question: str):
-
-    docs = retrieve(question, top_k=3)
+    # 直接调用单例自带的检索方法
+    docs = vector_manager.search_docs(query=question, top_k=3)
 
     if not docs:
         return {
@@ -71,13 +50,11 @@ def rag_answer(question: str):
 
     prompt = f"""
     你是一个基于知识库进行回答的 AI 助手。
-
     以下是从知识库中检索到的内容：
 
     {context}
 
     请基于知识库内容回答问题。
-
     要求：
     1. 优先依据知识库内容回答
     2. 如果知识库中没有答案，请明确说明
@@ -91,8 +68,5 @@ def rag_answer(question: str):
 
     return {
         "answer": response.content,
-        "sources": [
-            doc.metadata.get("source")
-            for doc in docs
-        ],
+        "sources": list(set([doc.metadata.get("source") for doc in docs])),
     }
