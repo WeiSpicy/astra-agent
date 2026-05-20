@@ -20,7 +20,7 @@ agent = AgentCore()
 @router.post("")
 async def chat_endpoint(req: ChatRequest):
 
-    result = await agent.run(req.question)
+    result = await agent.run(req.question, session_id=req.session_id)
     return result
 
 #######################
@@ -31,7 +31,7 @@ async def chat_endpoint(req: ChatRequest):
 async def chat_stream(req: ChatRequest):
 
     async def event_generator():
-        async for event in agent.stream(req.question):
+        async for event in agent.stream(req.question, session_id=req.session_id):
             # SSE 标准格式
             yield (
                 f"event: {event['event']}\n"

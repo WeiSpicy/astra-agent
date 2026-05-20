@@ -1,15 +1,15 @@
 import streamlit as st
 import requests
 import json
-import sseclient
+import uuid
 
 # =========================
 # 页面配置
 # =========================
-st.set_page_config(page_title="AstraAgent Chat Demo", page_icon="🤖")
+st.set_page_config(page_title="Astra Agent", page_icon="🤖")
 
-st.title("🤖 AstraAgent 聊天界面 Demo")
-st.caption("深色模式适配 · 左右气泡 · 工具链可视化 · 流式输出")
+st.title("Astra Agent Demo")
+st.caption("一个支持 Tool Calling · RAG · Streaming 的 AI Agent Demo")
 
 # =========================
 # 主题检测与差异化颜色 Token
@@ -126,6 +126,35 @@ unified_css = f"""
 st.markdown(unified_css, unsafe_allow_html=True)
 
 # =========================
+# 后端请求地址
+# =========================
+BACKEND_URL = "http://127.0.0.1:8000"
+
+# =========================
+# 设置对话session id
+# =========================
+if "session_id" not in st.session_state:
+    saved_id = st.context.cookies.get("astra_session_id")
+    
+    if saved_id:
+        st.session_state.session_id = saved_id
+    else:
+        new_id = str(uuid.uuid4())
+        st.session_state.session_id = new_id
+        
+        # 利用 JS 写入Cookie并设置七天有效期
+        st.components.v1.html(
+            f"""
+            <script>
+                const date = new Date();
+                date.setTime(date.getTime() + (7 * 24 * 60 * 60 * 1000));
+                document.cookie = "astra_session_id={new_id}; expires=" + date.toUTCString() + "; path=/";
+            </script>
+            """,
+            height=0, # 隐藏组件，不占用任何页面视觉空间
+        )
+
+# =========================
 # 工具链展示
 # =========================
 def render_tool_chain(tools):
@@ -137,10 +166,25 @@ def render_tool_chain(tools):
 # =========================
 # 初始化聊天历史
 # =========================
+def fetch_history():
+    try:
+        res = requests.get(f"{BACKEND_URL}/api/v1/memory/history?session_id={st.session_state.session_id}&limit=10")
+        return res.json().get("data", [])
+    except:
+        return []
+
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "你好，我是 AstraAgent！有什么可以帮你的吗？", "tools": None}
-    ]
+    # 💡 核心改动：优先去拿后端的历史
+    backend_history = fetch_history()
+    
+    if backend_history:
+        # 如果后端有历史，直接接过来
+        st.session_state.messages = backend_history
+    else:
+        # 如果后端是空的（比如刚开机），才用默认欢迎语
+        st.session_state.messages = [
+            {"role": "assistant", "content": "你好，我是 AstraAgent！有什么可以帮你的吗？", "tools": None}
+        ]
     
     
 # =========================
@@ -149,12 +193,15 @@ if "messages" not in st.session_state:
 def stream_response(question: str):
     """通过 SSE 获取流式结果"""
 
-    url = "http://localhost:8000/api/v1/chat/stream"
+    url = f"{BACKEND_URL}/api/v1/chat/stream"
 
     try:
         response = requests.post(
             url,
-            json={"question": question},
+            json={
+                "question": question,
+                "session_id": st.session_state.session_id
+            },
             stream=True,
             timeout=120,
         )

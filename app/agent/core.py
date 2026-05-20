@@ -20,16 +20,16 @@ class AgentCore:
     # =========================
     # 普通模式（非流式）
     # =========================
-    async def run(self, user_input: str):
+    async def run(self, user_input: str, session_id: str = "default_session"):
 
         # 1. 意图识别
         workflow_name = detect_intent(user_input)
 
         # 2. 记录用户消息
-        add_message("user", user_input)
+        add_message("user", user_input, session_id)
 
         # 3. 获取历史记录
-        history = get_history()
+        history = get_history(session_id)
 
         # 4. 执行工作流
         wf_result = await run_workflow(
@@ -44,7 +44,7 @@ class AgentCore:
 
         # 5. 保存 assistant 回复
         if wf_result.get("answer"):
-            add_message("assistant", answer)
+            add_message("assistant", answer, session_id)
 
         # 6. 返回结果
         return {
@@ -56,7 +56,7 @@ class AgentCore:
     # =========================
     # 流式模式（SSE）
     # =========================
-    async def stream(self, user_input: str):
+    async def stream(self, user_input: str, session_id: str = "default_session"):
 
         # 用户消息
         yield SSEEvent(
@@ -84,10 +84,10 @@ class AgentCore:
         ).model_dump()
 
         # 保存用户消息
-        add_message("user", user_input)
+        add_message("user", user_input, session_id)
 
         # 加载历史
-        history = get_history()
+        history = get_history(session_id)
 
         yield SSEEvent(
             event="history_loaded",
@@ -117,4 +117,4 @@ class AgentCore:
 
         # 保存 assistant 回复
         if final_answer:
-            add_message("assistant", final_answer)
+            add_message("assistant", final_answer, session_id)

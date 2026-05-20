@@ -1,0 +1,21 @@
+services:
+  astra_agent_demo:
+    image: weispicy/astra_agent_demo:1.0.7
+    container_name: astra_agent_demo
+    ports:
+      - "8084:8000"
+      - "8501:8501"
+    environment:
+      - DEEPSEEK_BASE_URL=https://api.deepseek.com
+      - DEEPSEEK_API_KEY=your_deepseek_key
+      - MAX_HISTORY=15
+      # 和风天气API
+      - HF_API_HOST=your_hefeng_api_host
+      - HF_PROJECT_ID=your_hefeng_project_id
+      - HF_PROJECT_KID=your_hefeng_project_kid
+      - HF_KEY_DIR=your_public_and_privite_key_path # default -> ./keys
+    volumes:
+      - ./data:/workspace/data
+      - ./keys:/workspace/keys
+      - ./models:/workspace/models
+    restart: unless-stopped
