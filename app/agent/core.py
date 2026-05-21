@@ -10,7 +10,9 @@ from app.agent.workflow_executor import (
 )
 
 from app.model.sse import SSEEvent
+from app.utils import setup_logger
 
+logger = setup_logger("Agent Core")
 
 class AgentCore:
 
@@ -21,9 +23,8 @@ class AgentCore:
     # 普通模式（非流式）
     # =========================
     async def run(self, user_input: str, session_id: str = "default_session"):
-
         # 1. 意图识别
-        workflow_name = detect_intent(user_input)
+        workflow_name = await detect_intent(user_input)
 
         # 2. 记录用户消息
         add_message("user", user_input, session_id)
@@ -73,7 +74,7 @@ class AgentCore:
         await asyncio.sleep(0)
 
         # 意图识别
-        workflow_name = detect_intent(user_input)
+        workflow_name = await detect_intent(user_input)
 
         yield SSEEvent(
             event="intent_detected",

@@ -1,9 +1,9 @@
-from app.llm.intent_llm import intent_llm
+from app.llm.intent_llm import ainvoke_intent_llm
 from app.utils.logger import setup_logger
 
 logger = setup_logger("intent")
 
-def detect_intent(text: str) -> str:
+async def detect_intent(text: str) -> str:
     prompt = f"""
     你是一个精准的AI Agent意图路由器。
     根据用户输入, 从以下4个标签中**只输出一个**: 
@@ -24,7 +24,7 @@ def detect_intent(text: str) -> str:
     只输出一个单词: dynamic / tool / rag / chat,不要输出任何其他内容。
     """
     
-    result = intent_llm.invoke(prompt)
-    intent_name = result.content.strip().lower()
+    result = await ainvoke_intent_llm(prompt)
+    intent_name = result.lower()
     logger.info(f"input={text} -> Selected Workflow={intent_name}")
     return intent_name

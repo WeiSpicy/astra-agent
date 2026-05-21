@@ -25,7 +25,7 @@ def init_vectorstore(knowledge_dir=KNOWLEDGE_DIR):
 # RAG Retrieval & Answer
 # -----------------------------------
 def retrieve(question: str, top_k: int = 3):
-
+    logger.info("正在进行 RAG 检索")
     results = vector_manager.search_docs(
         query=question,
         top_k=top_k,

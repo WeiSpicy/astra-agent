@@ -154,6 +154,10 @@ if "session_id" not in st.session_state:
             height=0, # 隐藏组件，不占用任何页面视觉空间
         )
 
+# 输入框状态控制
+if "is_processing" not in st.session_state:
+    st.session_state.is_processing = False
+
 # =========================
 # 工具链展示
 # =========================
@@ -266,7 +270,7 @@ def render_message(msg):
             unsafe_allow_html=True
         )
 
-    render_tool_chain(msg.get("tools"))
+    # render_tool_chain(msg.get("tools"))
 
 # 渲染历史
 for msg in st.session_state.messages:
@@ -306,10 +310,12 @@ def render_status(placeholder, content: str, is_loading: bool = True):
 # =========================
 # 输入框
 # =========================
-prompt = st.chat_input("请输入你的问题…")
+prompt = st.chat_input(
+    "请输入你的问题…", 
+    disabled=st.session_state.get("is_processing", False)
+)
 
 if prompt:
-
     # -------------------------
     # 显示用户消息
     # -------------------------
@@ -317,9 +323,12 @@ if prompt:
         "role": "user",
         "content": prompt
     })
+    
+    # ───【增量修改 1/3：锁定并触发重绘】───
+    st.session_state.is_processing = True
+    st.rerun()
 
-    render_message(st.session_state.messages[-1])
-
+if st.session_state.get("is_processing", False):
     # -------------------------
     # 动态区域
     # -------------------------
@@ -330,10 +339,13 @@ if prompt:
     # 请求前显示“等待 AI 思考中”
     render_status(status_placeholder, "等待 AI 思考中...", is_loading=True)
     
+    # 从历史记录中安全获取当前需要的 prompt 文本
+    current_prompt = st.session_state.messages[-1]["content"]
+
     # -------------------------
     # SSE 流式接收
     # -------------------------
-    for event in stream_response(prompt):
+    for event in stream_response(current_prompt):
         event_type = event.get("event")
         content = event.get("content") or event.get("message", "")
 
@@ -372,14 +384,19 @@ if prompt:
 
         elif event_type == "error":
             render_status(status_placeholder, content or "发生错误", is_loading=False)
+            
+            # ───【增量修改 3/3：发生异常时解锁并重绘】───
+            st.session_state.is_processing = False
+            st.rerun()
 
     # -------------------------
     # 保存到历史记录
     # -------------------------
-
     if full_answer:
-
         st.session_state.messages.append({
             "role": "assistant",
             "content": full_answer,
         })
+    
+    st.session_state.is_processing = False
+    st.rerun()
