@@ -18,10 +18,8 @@ async def run_workflow(user_input: str, history: list) -> dict:
     """
     logger.info(f"用户输入: {user_input}")
 
-    # 始终使用动态规划
     steps = await plan_steps_async(user_input)
 
-    # 初始化上下文
     context = {
         "user_input": user_input,
         "history": history,
@@ -87,8 +85,9 @@ TOOL_DESC = {
 
 async def run_workflow_stream(user_input: str, history: list):
     """
-    流式执行动态工作流（支持同步工具/RAG底层无痛并行化改造 + 异步队列流式状态感知）
+    以流式方式执行动态工作流，支持同步  工具与 RAG 的并行化处理，并通过异步队列实时推送执行状态。
     """
+
     logger.info(f"开始处理复合意图: {user_input}")
 
     # Step 1: 规划阶段
@@ -112,42 +111,35 @@ async def run_workflow_stream(user_input: str, history: list):
     # Step 2: 任务分桶与多线程并行执行 (Async Queue)
     tasks = []
     
-    # 创建异步队列, 用于子协程向主线程实时 “打小报告”
     event_queue = asyncio.Queue()
 
-    # 2.1 封装同步工具的并行 Worker
     async def worker_tool(step_dict: dict, idx: int):
         tool_name = step_dict.get("tool") or step_dict.get("name")
         args = step_dict.get("args") or {}
         desc = TOOL_DESC[tool_name](args) if tool_name in TOOL_DESC else ""
         
-        # 触发时立即丢进队列, 前端秒级感知
         await event_queue.put(f"[Tool] 开始调用工具 [{tool_name}] {desc}")
 
         tool_input_str = json.dumps({"tool": tool_name, "args": args})
 
-        # 利用 asyncio.to_thread 丢进后台独立线程, 实现真正并行
         result = await asyncio.to_thread(run_tool, tool_input_str)
 
         context["tool_results_map"].append(
             {"tool": tool_name, "args": args, "result": result}
         )
         
-        # 执行完立即丢进队列
         await event_queue.put(f"[Tool] 工具 [{tool_name}] 执行完成")
 
-    # 2.2 封装同步 RAG 的并行 Worker
     async def worker_rag(step_dict: dict):
         query = step_dict.get("query") or user_input
         await event_queue.put(f"[RAG] 知识库开始检索: '{query}'...")
 
-        # 利用 to_thread 让同步 RAG 检索在后台并发运行
         docs = await asyncio.to_thread(retrieve, query)
         context["docs"].extend(docs)
 
         await event_queue.put(f"[RAG] 知识库检索完成, 找到 {len(docs)} 条相关文档")
 
-    # 2.3 扫描解析规划步骤, 将其装载进并发任务池中
+    # 2.3 并发执行任务步骤
     has_llm_step = False
     for i, step in enumerate(steps):
         step_type = step.get("type")
@@ -158,17 +150,15 @@ async def run_workflow_stream(user_input: str, history: list):
         elif step_type == "llm":
             has_llm_step = True
 
-    # 2.4 并发任务与抢占式通知
+    # 2.4 并发任务执行与事件推送
     if tasks:
         yield SSEEvent(
             event="status", 
             content=f"已并行触发 {len(tasks)} 个本地任务..."
         ).model_dump()
         
-        # 将所有并行任务捆绑打包
         bg_tasks = asyncio.gather(*tasks)
         
-        # 只要后台并发任务没全部完成, 或者队列里还有未消化的状态, 就持续监听
         while not bg_tasks.done() or not event_queue.empty():
             try:
                 # 设置一个极短的超时, 防止队列没消息时主线程死等导致事件流卡住
@@ -176,13 +166,11 @@ async def run_workflow_stream(user_input: str, history: list):
                 yield SSEEvent(event="status", content=msg).model_dump()
                 event_queue.task_done()
             except asyncio.TimeoutError:
-                # 暂时没有新事件, 让出控制权稍微歇一下
                 await asyncio.sleep(0.02)
         
-        # 如果发生内部异常, 会在此时抛出
         await bg_tasks
 
-    # Step 3: 总结
+    # Step 3: 基于工具结果生成总结
     if has_llm_step:
         yield SSEEvent(
             event="llm_start",
@@ -221,9 +209,7 @@ async def run_workflow_stream(user_input: str, history: list):
             logger.exception("大模型最终总结生成失败")
             yield SSEEvent(event="error", content=f"总结生成失败: {str(e)}").model_dump()
 
-    # ==========================================
-    # Step 4: 谢幕
-    # ==========================================
+    # Step 4: 生成最终回复
     final_answer = context.get("llm_result") or "工作流执行完成"
     yield SSEEvent(
         event="final", content=final_answer, data={"answer": final_answer}

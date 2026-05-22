@@ -40,32 +40,27 @@ async def stream_chat_llm(
         }
     ]
 
-    # 历史
     for h in history:
-        messages.append({
-            "role": h["role"],
-            "content": h["content"],
-        })
+        messages.append(
+            {
+                "role": h["role"],
+                "content": h["content"],
+            }
+        )
 
     # 用户输入
-    messages.append({
-        "role": "user",
-        "content": user_input,
-    })
+    messages.append(
+        {
+            "role": "user",
+            "content": user_input,
+        }
+    )
 
-    # RAG
     if context_docs:
-        messages.append({
-            "role": "system",
-            "content": f"相关文档：{context_docs}"
-        })
+        messages.append({"role": "system", "content": f"相关文档：{context_docs}"})
 
-    # Tool
     if tool_result:
-        messages.append({
-            "role": "system",
-            "content": f"工具结果：{tool_result}"
-        })
+        messages.append({"role": "system", "content": f"工具结果：{tool_result}"})
 
     try:
 
@@ -74,11 +69,7 @@ async def stream_chat_llm(
             messages=messages,
             stream=True,
             reasoning_effort="high",
-            extra_body={
-                "thinking": {
-                    "type": "enabled"
-                }
-            }
+            extra_body={"thinking": {"type": "enabled"}},
         )
 
         full_content = ""

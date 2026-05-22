@@ -57,7 +57,7 @@ def load_docs_from_dir(dir_path="docs") -> List[Dict]:
         if not path.is_file():
             continue
 
-        if path.suffix.lower() not in [".txt", ".md", ".pdf"]:
+        if path.suffix.lower() not in [".txt", ".md", ".pdf", ".csv"]:
             continue
 
         text = load_file(path)
@@ -78,7 +78,6 @@ def load_docs_from_dir(dir_path="docs") -> List[Dict]:
 
     return docs
 
-# 修改 load_document 签名，增加一个可选的 progress_callback
 def load_document_with_progress(path: Path, progress_callback=None) -> List[Dict]:
     """
     加载并切分文档。

@@ -11,14 +11,13 @@ logger = setup_logger("rag")
 async def rag_query(request: RAGQueryRequest):
     """RAG 知识检索 + 生成回答"""
     try:
-        # 使用完整的 rag_answer（带LLM生成）
         result = rag_answer(request.query)
 
         return RagResponse(
             query=request.query,
             answer=result["answer"],
             sources=result.get("sources", []),
-            raw_docs=None  # 如果需要调试可以返回
+            raw_docs=None
         )
 
     except Exception as e:

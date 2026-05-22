@@ -12,11 +12,10 @@ st.title("Astra Agent Demo")
 st.caption("一个支持 Tool Calling · RAG · Streaming 的 AI Agent Demo")
 
 # =========================
-# 主题检测与差异化颜色 Token
+# Dark / Light 主题样式切换
 # =========================
 current_theme = getattr(st.context.theme, "type", "light")
 
-# 提取纯颜色样式差异，做成配置字典
 if current_theme == "dark":
     theme_colors = {
         "user_bg": "rgba(255, 255, 255, 0.1)",
@@ -36,10 +35,6 @@ else:
         "tool_border": "rgba(0, 0, 0, 0.1)",
     }
 
-# =========================
-# 统一的 CSS 架构模板（利用 f-string 动态注入颜色）
-# =========================
-# 注意：CSS 原生的大括号 {} 在 f-string 中需要写成双大括号 {{}} 规避转义
 unified_css = f"""
 <style>
 /* 1. 基础布局骨架 */
@@ -58,7 +53,6 @@ unified_css = f"""
     color: var(--text-color);
 }}
 
-/* 2. 差异化皮肤注入 */
 .user-bubble {{
     background-color: {theme_colors['user_bg']};
     border: 1px solid {theme_colors['user_border']};
@@ -82,7 +76,6 @@ unified_css = f"""
     color: var(--text-color);
 }}
 
-/* 3. Loading 动画组件（统一管理，绝不复制第二遍） */
 .loading-dots {{
     display: inline-flex;
     align-items: center;
@@ -109,7 +102,6 @@ unified_css = f"""
     40% {{ transform: scale(1); }}
 }}
 
-<style>
 .cursor {{
     animation: blink 1s infinite;
 }}
@@ -142,7 +134,6 @@ if "session_id" not in st.session_state:
         new_id = str(uuid.uuid4())
         st.session_state.session_id = new_id
 
-        # 利用 JS 写入Cookie并设置七天有效期
         st.components.v1.html(
             f"""
             <script>
@@ -151,7 +142,7 @@ if "session_id" not in st.session_state:
                 document.cookie = "astra_session_id={new_id}; expires=" + date.toUTCString() + "; path=/";
             </script>
             """,
-            height=0,  # 隐藏组件，不占用任何页面视觉空间
+            height=0,
         )
 
 # 输入框状态控制
@@ -183,14 +174,11 @@ def fetch_history():
 
 
 if "messages" not in st.session_state:
-    # 💡 核心改动：优先去拿后端的历史
     backend_history = fetch_history()
 
     if backend_history:
-        # 如果后端有历史，直接接过来
         st.session_state.messages = backend_history
     else:
-        # 如果后端是空的（比如刚开机），才用默认欢迎语
         st.session_state.messages = [
             {
                 "role": "assistant",
@@ -227,7 +215,6 @@ def stream_response(question: str):
 
             line = line.decode("utf-8")
 
-            # SSE 格式: data: {...}
             if line.startswith("data: "):
 
                 data_str = line[6:]
@@ -244,13 +231,12 @@ def stream_response(question: str):
 
 
 # =========================
-# 渲染消息
+# 消息渲染
 # =========================
 def render_message(msg):
     role = msg["role"]
     bubble_class = "assistant-bubble" if role == "assistant" else "user-bubble"
 
-    # 助手：左侧
     if role == "assistant":
         st.markdown(
             f"""
@@ -262,7 +248,6 @@ def render_message(msg):
             """,
             unsafe_allow_html=True,
         )
-    # 用户：右侧
     else:
         st.markdown(
             f"""
@@ -324,32 +309,22 @@ prompt = st.chat_input(
 )
 
 if prompt:
-    # -------------------------
     # 显示用户消息
-    # -------------------------
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # ───【增量修改 1/3：锁定并触发重绘】───
     st.session_state.is_processing = True
     st.rerun()
 
 if st.session_state.get("is_processing", False):
-    # -------------------------
-    # 动态区域
-    # -------------------------
     status_placeholder = st.empty()
     answer_placeholder = st.empty()
     full_answer = ""
 
-    # 请求前显示“等待 AI 思考中”
     render_status(status_placeholder, "等待 AI 思考中...", is_loading=True)
 
     # 从历史记录中安全获取当前需要的 prompt 文本
     current_prompt = st.session_state.messages[-1]["content"]
 
-    # -------------------------
-    # SSE 流式接收
-    # -------------------------
     for event in stream_response(current_prompt):
         event_type = event.get("event")
         content = event.get("content") or event.get("message", "")
@@ -391,18 +366,15 @@ if st.session_state.get("is_processing", False):
                 """,
                 unsafe_allow_html=True,
             )
-            status_placeholder.empty()  # 最终答案出来后清除状态栏
+            status_placeholder.empty()
 
         elif event_type == "error":
             render_status(status_placeholder, content or "发生错误", is_loading=False)
 
-            # ───【增量修改 3/3：发生异常时解锁并重绘】───
             st.session_state.is_processing = False
             st.rerun()
 
-    # -------------------------
     # 保存到历史记录
-    # -------------------------
     if full_answer:
         st.session_state.messages.append(
             {

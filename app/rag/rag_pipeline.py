@@ -9,7 +9,6 @@ logger = setup_logger("RAG Pipeline")
 def init_vectorstore(knowledge_dir=KNOWLEDGE_DIR):
     """初始化向量库 (FastAPI lifespan 调用)"""
     
-    # 检查单例是否已经成功从磁盘加载了现有向量库
     if vector_manager.get_vectorstore() is not None:
         logger.info("已加载本地已有向量库")
         return
@@ -17,7 +16,6 @@ def init_vectorstore(knowledge_dir=KNOWLEDGE_DIR):
     logger.info("本地向量库不存在，开始从本地目录扫描构建...")
     docs = load_docs_from_dir(knowledge_dir)
     
-    # 统一直接调用单例的 add_documents 接口完成首次全量构建
     vector_manager.add_documents(docs)
     logger.info("本地向量库冷启动全量构建完成")
 
@@ -34,7 +32,6 @@ def retrieve(question: str, top_k: int = 3):
     return results
 
 def rag_answer(question: str):
-    # 直接调用单例自带的检索方法
     docs = vector_manager.search_docs(query=question, top_k=3)
 
     if not docs:

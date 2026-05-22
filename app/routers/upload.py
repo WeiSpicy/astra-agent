@@ -23,7 +23,11 @@ DOCS_DIR = KNOWLEDGE_DIR
 
 @router.post("")
 async def upload_file(file: UploadFile = File(...)):
-    """上传文件完成后会返回一个知识库处理的task_id"""
+    """
+    上传文件到知识库目录，并启动后台异步处理任务。
+    返回 task_id, 可用于查询处理进度。
+    """
+
     suffix = Path(file.filename).suffix.lower()
 
     if suffix not in [".txt", ".md", ".pdf", ".csv"]:

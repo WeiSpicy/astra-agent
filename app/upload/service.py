@@ -1,5 +1,4 @@
 from pathlib import Path
-import time
 
 from app.rag.loader import load_document_with_progress
 from app.rag.vector_store import vector_manager

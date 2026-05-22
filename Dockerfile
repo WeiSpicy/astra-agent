@@ -5,7 +5,6 @@ WORKDIR /workspace
 
 COPY pyproject.toml uv.lock ./
 
-# 安装依赖
 RUN pip install --no-cache-dir uv && \
     uv sync --frozen --no-dev
 
@@ -21,7 +20,6 @@ COPY data/ ./data
 # 服务启动脚本
 COPY start.sh .
 
-# 服务启动脚本
 RUN chmod +x start.sh
 
 # 暴露端口（FastAPI + Streamlit）

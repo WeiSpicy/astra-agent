@@ -4,7 +4,7 @@ from typing import Dict
 from app.config import MAX_HISTORY
 from collections import deque
 
-# 保存最近 15 轮对话（内存字典隔离）
+# 按 session 存储最近 MAX_HISTORY 条对话
 _user_histories: Dict[str, deque] = {}
 
 def _get_or_create_queue(session_id: str = "default_session") -> deque:

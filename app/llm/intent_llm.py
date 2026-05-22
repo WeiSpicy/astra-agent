@@ -13,7 +13,7 @@ aclient = AsyncOpenAI(
 
 async def ainvoke_intent_llm(prompt: str):
     """
-    一个轻量级的、完全异步的意图识别函数
+    异步调用 LLM 进行意图识别
     """
     response = await aclient.chat.completions.create(
         model="deepseek-v4-flash",

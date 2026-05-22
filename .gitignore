@@ -11,9 +11,7 @@ wheels/
 
 .env
 
-# 排除本地轻量化模型权重
 models/
 vector_store/
 
-# 忽略密钥对
 keys/
