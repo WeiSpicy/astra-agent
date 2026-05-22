@@ -24,8 +24,7 @@ AstraAgent 是一个基于 FastAPI 的轻量级 AI 应用项目，
 - Python 3.11
 
 ## Demo
-#### 前端效果
-<video src="docs/frontend_demo.mp4" width="100%" autoplay loop muted playsinline poster="docs/frontend_poster.png"></video>
+![前端效果](docs/frontend_demo.gif)
 
 ## 功能特性
 
