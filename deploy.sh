@@ -1,6 +1,6 @@
 #!/bin/bash
 IMAGE_NAME=weispicy/astra_agent_demo
-CURRENT_VERSION=1.0.8
+CURRENT_VERSION=1.0.12
 
 # 提取主版本号、次版本号和补丁号
 MAJOR=$(echo "$CURRENT_VERSION" | awk -F. '{print $1}')

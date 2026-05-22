@@ -24,7 +24,7 @@ if current_theme == "dark":
         "assistant_bg": "rgba(255, 255, 255, 0.05)",
         "assistant_border": "rgba(255, 255, 255, 0.15)",
         "tool_bg": "rgba(255, 255, 255, 0.05)",
-        "tool_border": "rgba(255, 255, 255, 0.15)"
+        "tool_border": "rgba(255, 255, 255, 0.15)",
     }
 else:
     theme_colors = {
@@ -33,7 +33,7 @@ else:
         "assistant_bg": "rgba(0, 0, 0, 0.05)",
         "assistant_border": "rgba(0, 0, 0, 0.1)",
         "tool_bg": "rgba(0, 0, 0, 0.05)",
-        "tool_border": "rgba(0, 0, 0, 0.1)"
+        "tool_border": "rgba(0, 0, 0, 0.1)",
     }
 
 # =========================
@@ -135,13 +135,13 @@ BACKEND_URL = "http://127.0.0.1:8000"
 # =========================
 if "session_id" not in st.session_state:
     saved_id = st.context.cookies.get("astra_session_id")
-    
+
     if saved_id:
         st.session_state.session_id = saved_id
     else:
         new_id = str(uuid.uuid4())
         st.session_state.session_id = new_id
-        
+
         # 利用 JS 写入Cookie并设置七天有效期
         st.components.v1.html(
             f"""
@@ -151,12 +151,13 @@ if "session_id" not in st.session_state:
                 document.cookie = "astra_session_id={new_id}; expires=" + date.toUTCString() + "; path=/";
             </script>
             """,
-            height=0, # 隐藏组件，不占用任何页面视觉空间
+            height=0,  # 隐藏组件，不占用任何页面视觉空间
         )
 
 # 输入框状态控制
 if "is_processing" not in st.session_state:
     st.session_state.is_processing = False
+
 
 # =========================
 # 工具链展示
@@ -167,30 +168,42 @@ def render_tool_chain(tools):
     st.markdown("**🛠 工具调用链**")
     st.code(json.dumps(tools, ensure_ascii=False, indent=2), language="json")
 
+
 # =========================
 # 初始化聊天历史
 # =========================
 def fetch_history():
     try:
-        res = requests.get(f"{BACKEND_URL}/api/v1/memory/history?session_id={st.session_state.session_id}&limit=10")
+        res = requests.get(
+            f"{BACKEND_URL}/api/v1/memory/history?session_id={st.session_state.session_id}&limit=10"
+        )
         return res.json().get("data", [])
     except:
         return []
 
+
 if "messages" not in st.session_state:
     # 💡 核心改动：优先去拿后端的历史
     backend_history = fetch_history()
-    
+
     if backend_history:
         # 如果后端有历史，直接接过来
         st.session_state.messages = backend_history
     else:
         # 如果后端是空的（比如刚开机），才用默认欢迎语
         st.session_state.messages = [
-            {"role": "assistant", "content": "你好，我是 AstraAgent！有什么可以帮你的吗？", "tools": None}
+            {
+                "role": "assistant",
+                "content": """嗨！我是 AstraAgent 👋
+一个具备动态工作流与并发调度能力的 AI 助手。你可以这样考考我：\n
+🌤️ 查工具：“今天厦门和杭州天气怎么样？ 今天几号或者一些简单的数学运算。”\n
+📚 查知识：本地 RAG 管道已跑通！现阶段可以问我 FastAPI、Python 异步编程等技术概念。\n
+我的知识库正在疯狂扩容中，现在想对我说点什么呢？""",
+                "tools": None,
+            }
         ]
-    
-    
+
+
 # =========================
 # 流式 SSE 处理函数
 # =========================
@@ -202,10 +215,7 @@ def stream_response(question: str):
     try:
         response = requests.post(
             url,
-            json={
-                "question": question,
-                "session_id": st.session_state.session_id
-            },
+            json={"question": question, "session_id": st.session_state.session_id},
             stream=True,
             timeout=120,
         )
@@ -227,17 +237,12 @@ def stream_response(question: str):
                     yield data
 
                 except Exception as e:
-                    yield {
-                        "type": "error",
-                        "content": f"SSE JSON 解析失败: {e}"
-                    }
+                    yield {"type": "error", "content": f"SSE JSON 解析失败: {e}"}
 
     except Exception as e:
-        yield {
-            "type": "error",
-            "content": f"连接后端失败: {e}"
-        }
-            
+        yield {"type": "error", "content": f"连接后端失败: {e}"}
+
+
 # =========================
 # 渲染消息
 # =========================
@@ -255,7 +260,7 @@ def render_message(msg):
                 </div>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
     # 用户：右侧
     else:
@@ -267,14 +272,16 @@ def render_message(msg):
                 </div>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
     # render_tool_chain(msg.get("tools"))
 
+
 # 渲染历史
 for msg in st.session_state.messages:
     render_message(msg)
+
 
 # =========================
 # 状态展示
@@ -305,25 +312,23 @@ def render_status(placeholder, content: str, is_loading: bool = True):
             {loading_html}
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
+
+
 # =========================
 # 输入框
 # =========================
 prompt = st.chat_input(
-    "请输入你的问题…", 
-    disabled=st.session_state.get("is_processing", False)
+    "请输入你的问题…", disabled=st.session_state.get("is_processing", False)
 )
 
 if prompt:
     # -------------------------
     # 显示用户消息
     # -------------------------
-    st.session_state.messages.append({
-        "role": "user",
-        "content": prompt
-    })
-    
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
     # ───【增量修改 1/3：锁定并触发重绘】───
     st.session_state.is_processing = True
     st.rerun()
@@ -338,7 +343,7 @@ if st.session_state.get("is_processing", False):
 
     # 请求前显示“等待 AI 思考中”
     render_status(status_placeholder, "等待 AI 思考中...", is_loading=True)
-    
+
     # 从历史记录中安全获取当前需要的 prompt 文本
     current_prompt = st.session_state.messages[-1]["content"]
 
@@ -349,14 +354,20 @@ if st.session_state.get("is_processing", False):
         event_type = event.get("event")
         content = event.get("content") or event.get("message", "")
 
-        if event_type in ["status", "step_start", "tool_start", "rag_start", "llm_start"]:
+        if event_type in [
+            "status",
+            "step_start",
+            "tool_start",
+            "rag_start",
+            "llm_start",
+        ]:
             render_status(status_placeholder, content, is_loading=True)
 
         elif event_type in ["tool_result", "rag_result", "steps"]:
             render_status(status_placeholder, content, is_loading=False)
         elif event_type == "token":
             full_answer += content
-            
+
             answer_placeholder.markdown(
                 f"""
                 <div class="chat-row">
@@ -365,9 +376,9 @@ if st.session_state.get("is_processing", False):
                     </div>
                 </div>
                 """,
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
-            
+
         elif event_type == "final":
             full_answer = content
             answer_placeholder.markdown(
@@ -377,14 +388,14 @@ if st.session_state.get("is_processing", False):
                         {full_answer}
                     </div>
                 </div>
-                """, 
-                unsafe_allow_html=True
+                """,
+                unsafe_allow_html=True,
             )
-            status_placeholder.empty()        # 最终答案出来后清除状态栏
+            status_placeholder.empty()  # 最终答案出来后清除状态栏
 
         elif event_type == "error":
             render_status(status_placeholder, content or "发生错误", is_loading=False)
-            
+
             # ───【增量修改 3/3：发生异常时解锁并重绘】───
             st.session_state.is_processing = False
             st.rerun()
@@ -393,10 +404,12 @@ if st.session_state.get("is_processing", False):
     # 保存到历史记录
     # -------------------------
     if full_answer:
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": full_answer,
-        })
-    
+        st.session_state.messages.append(
+            {
+                "role": "assistant",
+                "content": full_answer,
+            }
+        )
+
     st.session_state.is_processing = False
     st.rerun()

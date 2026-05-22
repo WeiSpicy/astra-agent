@@ -15,7 +15,8 @@ async def plan_steps_async(user_input: str):
         1. Extract parameters based strictly on specific locations.
         2. If the user does not specify a city, the 'city' parameter MUST default to '厦门'.
         3. Strictly FORBIDDEN to use placeholders like 'current_city', or 'unknown'.
-
+        4. Crucial: If the input is just a greeting or casual chat, the steps list MUST still contain at least [[{{"type": "llm"}}] so the assistant can respond.        
+        
         [Available Tools]
         - calc: {{"expression": "math expression"}}
         - now: No args
@@ -45,8 +46,9 @@ async def plan_steps_async(user_input: str):
             content = content.split("```json")[1].split("```")[0].strip()
         elif content.startswith("```"):
             content = content.split("```")[1].strip()
-            
+             
         steps = json.loads(content)
+            
         logger.info(f"成功生成步骤: {steps}")
         return steps
         

@@ -1,29 +1,44 @@
 # Astra Agent
 
 ## 项目简介
-AstraAgent 是一个基于 FastAPI + LangChain/LlamaIndex 的轻量级 AI Agent 工作流 Demo
+AstraAgent 是一个基于 FastAPI 的轻量级 AI 应用项目，
+用于实践动态工作流（Agent Workflow）、RAG 检索增强和工具调用能力。
 
 ## 为什么做这个项目
-这个项目的目标是构建一个结构简洁、易于扩展的 AI Agent 示例，用于探索对话管理、检索增强生成（RAG）和工具调用等常见能力。
-希望通过这个项目验证一些工程实践，包括模块化设计、清晰的 API 边界，以及在实际应用中如何组织 Agent 的工作流。
+希望通过一个可运行的小型 AI 应用项目，
+把自己在 Agent 工作流、RAG 和工具调用上的理解落地实现。
+
+项目主要涉及：
+
+- Tool Calling
+- RAG
+- 多轮对话
+- 简单的动态工作流
 
 ## 技术栈
+
 - FastAPI
-- OpenAI Compatible API
-- LangChain（探索中）
-- SQLite / FAISS
+- OpenAI Compatible LLM API
+- FAISS
+- Streamlit
 - Python 3.11
 
+## Demo
+#### 前端效果
+<video src="docs/frontend_demo.mp4" width="100%" autoplay loop muted playsinline poster="docs/frontend_poster.png"></video>
+
 ## 功能特性
+
+- [X] 简单的动态 Agent 工作流
 - [X] 多轮对话管理
 - [X] 基于 LLM 的意图识别
-- [X] RAG 知识问答(FAISS + FastEmbed)
+- [X] 自定义工具调用（calc / now / weather）
+- [X] RAG 知识问答（FAISS + FastEmbed）
+- [X] SSE 流式响应
 - [X] 文档上传与向量库持久化
-- [X] 自定义工具链(calc / now / weather)
-- [X] 动态 Agent 工作流
-- [X] REST API(FastAPI)
+- [X] REST API（FastAPI）
 
-### Weather 工具（可选）
+#### Weather 工具（可选）
 
 项目支持基于和风天气 API 的 weather 工具。
 
@@ -40,45 +55,41 @@ AstraAgent 是一个基于 FastAPI + LangChain/LlamaIndex 的轻量级 AI Agent 
 ## 项目结构
 
 ```text
-## 项目结构
-
-```text
 astra_agent/
 ├── app/                          # 核心应用代码
 │   ├── main.py                   # FastAPI 应用入口
-│   ├── config.py                 # 全局配置（环境变量、路径、模型配置等）
-│   ├── dev.sh                    # 本地开发启动脚本
+│   ├── config.py                 # 全局配置
+│   ├── dev.sh                    # 本地开发脚本
 │   ├── start.sh                  # 服务启动脚本
 │   │
 │   ├── routers/                  # API 路由层
-│   │   ├── chat.py               # 聊天 / Agent 对话接口（支持 SSE 流式）
-│   │   ├── rag.py                # RAG 检索与问答接口
-│   │   ├── tool.py               # 工具调用接口
-│   │   ├── memory.py             # 对话历史查询接口
-│   │   └── upload.py             # 文件上传与进度查询接口
+│   │   ├── chat.py               # 对话接口（SSE 流式输出）
+│   │   ├── rag.py                # RAG 检索接口
+│   │   ├── tool.py               # Tool 调用接口
+│   │   ├── memory.py             # 对话历史接口
+│   │   └── upload.py             # 文件上传接口
 │   │
-│   ├── agent/                    # Agent 核心逻辑
-│   │   ├── core.py               # Agent 主入口与调度
-│   │   ├── planner.py            # 动态工作流规划器（Planner）
-│   │   ├── workflow_executor.py  # 工作流执行器（支持流式执行）
+│   ├── agent/                    # Agent 核心工作流
+│   │   ├── core.py               # Agent 主调度入口
+│   │   ├── planner.py            # 动态 Planner（步骤规划）
+│   │   ├── workflow_executor.py  # Workflow 执行器
 │   │   ├── intent.py             # 用户意图识别
-│   │   ├── memory.py             # 对话记忆管理（deque）
+│   │   ├── memory.py             # 多轮对话记忆管理
 │   │   └── tools/                # 内置工具模块
 │   │
-│   ├── llm/                      # LLM 相关封装
-│   │   ├── llm_client.py         # 普通 LLM 调用封装
-│   │   ├── stream_llm.py         # DeepSeek 流式输出封装
-│   │   ├── intent_llm.py         # 基于 LLM 的意图识别
+│   ├── llm/                      # LLM 调用封装
+│   │   ├── llm_client.py         # 普通 LLM 调用
+│   │   ├── stream_llm.py         # 流式输出封装
+│   │   ├── intent_llm.py         # 意图识别模型
 │   │   └── tool_llm.py           # Tool Call 推理封装
 │   │
 │   ├── rag/                      # RAG 知识库模块
-│   │   ├── rag_pipeline.py       # RAG 主流程（检索 + 生成）
-│   │   ├── loader.py             # 文档加载与 chunk 切分
-│   │   ├── vector_store.py       # FAISS 向量库封装（增量更新）
-│   │   ├── config.py             # RAG 配置项
-│   │   └── __init__.py
+│   │   ├── rag_pipeline.py       # 检索增强生成主流程
+│   │   ├── loader.py             # 文档加载与切分
+│   │   ├── vector_store.py       # FAISS 向量库封装
+│   │   └── config.py             # RAG 配置项
 │   │
-│   ├── upload/                   # 文件上传任务模块
+│   ├── upload/                   # 文件上传与向量化
 │   │   ├── service.py            # 文件解析与向量化服务
 │   │   ├── progress.py           # 上传进度管理
 │   │   └── task_store.py         # 上传任务状态存储
@@ -86,51 +97,47 @@ astra_agent/
 │   ├── model/                    # Pydantic 数据模型
 │   │   ├── agent.py              # Agent 数据结构
 │   │   ├── chat.py               # Chat 请求/响应模型
-│   │   ├── rag.py                # RAG 请求/响应模型
-│   │   ├── tool.py               # Tool 请求/响应模型
-│   │   ├── upload.py             # Upload 请求/响应模型
-│   │   └── sse.py                # SSE Event 数据结构
+│   │   ├── rag.py                # RAG 数据模型
+│   │   ├── tool.py               # Tool 数据模型
+│   │   ├── upload.py             # Upload 数据模型
+│   │   └── sse.py                # SSE Event 模型
 │   │
 │   ├── utils/                    # 通用工具模块
 │   │   ├── logger.py             # 日志封装
-│   │   ├── file_hash.py          # 文件 MD5 计算
-│   │   └── __init__.py
+│   │   └── file_hash.py          # 文件 Hash 工具
 │   │
 │   └── common/                   # 公共模块（预留扩展）
 │
 ├── frontend/                     # Streamlit 前端
-│   └── streamlit_app.py          # 聊天 UI（流式对话）
+│   └── streamlit_app.py          # 对话 UI
 │
-├── data/                         # 原始数据与知识库文件
-│   ├── knowledge/                # RAG 知识库目录
-│   │   ├── fastapi_intro.md
-│   │   ├── gil_deep_dive.md
-│   │   ├── jokers.md
-│   │   └── python_concurrency_overview.md
-│   └── other/                    # 其他数据目录
+├── data/                         # 知识库数据
+│   ├── knowledge/                # RAG 文档目录
+│   └── other/
 │
 ├── docs/                         # 项目文档
-│   └── architecture.md           # 系统架构设计说明
+│   ├── architecture.md           # 系统架构设计
+│   └── frontend_demo.mp4         # Demo 演示视频
 │
-├── vector_store/                 # FAISS 向量索引持久化目录
+├── vector_store/                 # FAISS 向量索引持久化
 │   ├── index.faiss
 │   └── index.pkl
 │
-├── models/                       # Embedding 模型缓存目录
+├── models/                       # Embedding 模型缓存
 │   └── models--Qdrant--bge-small-zh-v1.5
 │
-├── keys/                         # 密钥文件
+├── keys/                         # Weather Tool 密钥文件
 │   ├── ed25519-private.pem
 │   └── ed25519-public.pem
 │
-├── Dockerfile                    # Docker 镜像构建文件
-├── docker-compose.yaml           # Docker Compose 部署配置
+├── Dockerfile                    # Docker 镜像配置
+├── docker-compose.yaml           # Docker Compose 配置
 ├── deploy.sh                     # 部署脚本
-├── start.sh                      # 项目统一启动脚本
+├── start.sh                      # 项目启动脚本
 │
-├── README.md                     # 项目说明文档
-├── pyproject.toml                # Python 项目依赖配置
-├── uv.lock                       # uv 锁定依赖版本
+├── README.md                     # 项目说明
+├── pyproject.toml                # Python 项目配置
+├── uv.lock                       # uv 依赖锁文件
 └── .env                          # 环境变量配置
 ```
 
