@@ -116,7 +116,7 @@ astra_agent/
 │
 ├── docs/                         # 项目文档
 │   ├── architecture.md           # 系统架构设计
-│   └── frontend_demo.mp4         # Demo 演示视频
+│   └── frontend_demo.gif         # Demo 演示视频
 │
 ├── vector_store/                 # FAISS 向量索引持久化
 │   ├── index.faiss
