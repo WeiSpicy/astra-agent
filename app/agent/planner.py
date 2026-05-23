@@ -53,7 +53,7 @@ async def plan_steps_async(user_input: str):
         return steps
         
     except Exception as e:
-        logger.error(f"生成失败: {e}\n输出内容: {result.content if 'result' in locals() else 'None'}")
+        logger.error(f"生成失败: {e}\n输出内容: {repr(result) if 'result' in locals() else 'None'}")
         # 降级处理
         return [
             {"type": "llm", "prompt": f"直接回答用户问题: {user_input}"}

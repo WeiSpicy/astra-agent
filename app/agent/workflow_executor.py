@@ -1,7 +1,7 @@
 # app/agent/workflow_executor.py
 import asyncio
 import json
-from app.agent.tools import run_tool
+from app.agent.tools import execute_tool
 from app.agent.planner import plan_steps_async
 from app.model.sse import SSEEvent
 from app.rag import retrieve
@@ -63,8 +63,7 @@ async def run_workflow(user_input: str, history: list, intent: str = "dynamic") 
             if step_type == "tool":
                 tool_name = step.get("tool") or step.get("name")
                 args = step.get("args") or {}
-                tool_input = json.dumps({"tool": tool_name, "args": args})
-                result = await asyncio.to_thread(run_tool, tool_input)
+                result = await asyncio.to_thread(execute_tool, tool_name, args)
 
                 context["tool_results_map"].append(
                     {"tool": tool_name, "args": args, "result": result}
@@ -104,9 +103,9 @@ async def run_workflow(user_input: str, history: list, intent: str = "dynamic") 
     }
 
 TOOL_DESC = {
-    "now": lambda args: "查询当前时间",
+    "now": lambda _: "查询当前时间",
     "weather": lambda args: f"查询{args.get('city','未知')}天气",
-    "calc": lambda args: f"计算 {args.get('expr','')}",
+    "calc": lambda args: f"计算 {args.get('expression','')}",
 }
 
 async def _stream_llm_answer(user_input: str, history: list, context_docs: list, tool_result, intent_label: str):
@@ -177,12 +176,10 @@ async def run_workflow_stream(user_input: str, history: list, intent: str = "dyn
         tool_name = step_dict.get("tool") or step_dict.get("name")
         args = step_dict.get("args") or {}
         desc = TOOL_DESC[tool_name](args) if tool_name in TOOL_DESC else ""
-        
+
         await event_queue.put(f"[Tool] 开始调用工具 [{tool_name}] {desc}")
 
-        tool_input_str = json.dumps({"tool": tool_name, "args": args})
-
-        result = await asyncio.to_thread(run_tool, tool_input_str)
+        result = await asyncio.to_thread(execute_tool, tool_name, args)
 
         context["tool_results_map"].append(
             {"tool": tool_name, "args": args, "result": result}
