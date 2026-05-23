@@ -1,4 +1,7 @@
 .venv/
+.pytest_cache/
+__pycache__/
+*.pyc
 docs/
 vector_store/
 keys/
