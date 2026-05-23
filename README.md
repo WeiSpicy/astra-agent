@@ -105,7 +105,12 @@ astra_agent/
 │   │   ├── logger.py             # 日志封装
 │   │   └── file_hash.py          # 文件 Hash 工具
 │   │
-│   └── common/                   # 公共模块（预留扩展）
+├── tests/                        # 单元测试
+│   ├── test_calc.py
+│   ├── test_now.py
+│   ├── test_tools.py
+│   ├── test_planner.py
+│   └── test_memory.py
 │
 ├── frontend/                     # Streamlit 前端
 │   └── streamlit_app.py          # 对话 UI
