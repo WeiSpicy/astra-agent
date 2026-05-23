@@ -33,7 +33,7 @@ async def upload_file(file: UploadFile = File(...)):
     if suffix not in [".txt", ".md", ".pdf", ".csv"]:
         return {"success": False, "message": "仅支持 txt/md/pdf 文件"}
 
-    save_path = Path(DOCS_DIR) / file.filename
+    save_path = Path(DOCS_DIR) / Path(file.filename).name
 
     with open(save_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
