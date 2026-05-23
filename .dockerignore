@@ -1,6 +1,7 @@
 .venv/
 docs/
 vector_store/
+keys/
 .env
 .env.*
 Dockerfile

@@ -36,6 +36,7 @@ class AgentCore:
         wf_result = await run_workflow(
             user_input=user_input,
             history=history,
+            intent=workflow_name,
         )
 
         answer = (
@@ -104,6 +105,7 @@ class AgentCore:
         async for event in run_workflow_stream(
             user_input=user_input,
             history=history,
+            intent=workflow_name,
         ):
 
             # 保存最终回答
