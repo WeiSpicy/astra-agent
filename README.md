@@ -79,8 +79,7 @@ astra_agent/
 │   ├── llm/                      # LLM 调用封装
 │   │   ├── llm_client.py         # 普通 LLM 调用
 │   │   ├── stream_llm.py         # 流式输出封装
-│   │   ├── intent_llm.py         # 意图识别模型
-│   │   └── tool_llm.py           # Tool Call 推理封装
+│   │   └── intent_llm.py         # 意图识别模型
 │   │
 │   ├── rag/                      # RAG 知识库模块
 │   │   ├── rag_pipeline.py       # 检索增强生成主流程
