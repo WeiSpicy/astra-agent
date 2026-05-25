@@ -1,6 +1,6 @@
 # app/llm/stream_llm.py
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 from app.config import DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL
 from app.model.sse import SSEEvent
@@ -8,7 +8,7 @@ from app.utils.logger import setup_logger
 
 logger = setup_logger("stream_llm")
 
-client = OpenAI(
+client = AsyncOpenAI(
     api_key=DEEPSEEK_API_KEY,
     base_url=DEEPSEEK_BASE_URL,
 )
@@ -64,7 +64,7 @@ async def stream_chat_llm(
 
     try:
 
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="deepseek-v4-pro",
             messages=messages,
             stream=True,
@@ -74,7 +74,7 @@ async def stream_chat_llm(
 
         full_content = ""
 
-        for chunk in response:
+        async for chunk in response:
 
             if not chunk.choices:
                 continue
