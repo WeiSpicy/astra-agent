@@ -104,12 +104,20 @@ astra_agent/
 │   │   ├── logger.py             # 日志封装
 │   │   └── file_hash.py          # 文件 Hash 工具
 │   │
-├── tests/                        # 单元测试
+├── tests/                        # 单元测试 (mock LLM)
+│   ├── test_agent_core.py
 │   ├── test_calc.py
+│   ├── test_memory.py
 │   ├── test_now.py
-│   ├── test_tools.py
 │   ├── test_planner.py
-│   └── test_memory.py
+│   ├── test_tools.py
+│   └── test_workflow_executor.py
+│
+├── eval/                         #   模型决策质量评估
+│   ├── dataset_intent.py
+│   ├── dataset_planner.py
+│   ├── run_intent_eval.py
+│   └── run_planner_eval.py
 │
 ├── frontend/                     # Streamlit 前端
 │   └── streamlit_app.py          # 对话 UI
