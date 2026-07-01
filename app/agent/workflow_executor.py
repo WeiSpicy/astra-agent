@@ -157,6 +157,9 @@ async def run_workflow_stream(user_input: str, history: list, intent: str = "dyn
 
     steps = await plan_steps_async(user_input)
 
+    if not steps:
+        steps = [{"type": "llm", "prompt": f"直接回答用户问题: {user_input}"}]
+
     yield SSEEvent(
         event="steps", content="规划完成", data={"steps": steps}
     ).model_dump()

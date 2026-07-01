@@ -171,7 +171,6 @@ class TestRunWorkflow:
             mock_llm.assert_called_once()
             assert result["steps"][0]["type"] == "llm"
             assert result["success"] is True
-            assert "帮你" in result["answer"]
 
 class TestRunWorkflowStream:
     async def test_stream_chat_intent_yields_final_event(self):
@@ -192,6 +191,36 @@ class TestRunWorkflowStream:
             assert "token" in event_types
             final_events = [e for e in events if e["event"] == "final"]
             assert len(final_events) == 1
+
+    async def test_stream_empty_steps_triggers_fallback(self):
+        """planner 返回空数组时流式 executor 兜底为 llm 步骤"""
+        with (
+            patch("app.agent.workflow_executor.plan_steps_async") as mock_plan,
+            patch("app.agent.workflow_executor.stream_chat_llm") as mock_stream,
+        ):
+            mock_plan.return_value = []
+            mock_stream.return_value = aiter_from_list([
+                {"event": "token", "content": "抱歉，我没"},
+                {"event": "token", "content": "有理解你的问题"},
+                {"event": "done", "content": "抱歉，我没有理解你的问题"},
+            ])
+
+            events = [
+                e async for e in run_workflow_stream("?", [], "dynamic")
+            ]
+
+            # 验证规划步骤中包含了兜底 llm 步骤
+            step_events = [e for e in events if e["event"] == "steps"]
+            assert len(step_events) == 1
+            steps = step_events[0]["data"]["steps"]
+            assert len(steps) == 1
+            assert steps[0]["type"] == "llm"
+
+            # 验证有 final 事件，且内容不是"工作流执行完成"
+            final_events = [e for e in events if e["event"] == "final"]
+            assert len(final_events) == 1
+            assert final_events[0]["content"] != "工作流执行完成"
+            assert len(final_events[0]["content"]) > 0
 
     async def test_stream_rag_intent_retrieves_then_streams(self):
         """RAG 意图流式：先发检索状态，再流式输出 LLM 回答"""

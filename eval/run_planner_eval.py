@@ -46,7 +46,8 @@ def _checks(raw_output: str, steps: list | None, exc: str | None) -> list[str]:
     # 1. 异常
     if exc is not None:
         violations.append(f"planner 抛出异常: {exc}")
-        return violations  # 后续检查无意义
+        # planner 已抛异常 = 没有可解析的产物，后续结构校验无意义
+        return violations
 
     # 2. 是 list
     if not isinstance(steps, list):
