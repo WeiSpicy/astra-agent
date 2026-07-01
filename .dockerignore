@@ -11,3 +11,8 @@ eval/
 Dockerfile
 docker-compose.yaml
 README.md
+models/
+tests/
+.git/
+.claude/
+deploy.sh

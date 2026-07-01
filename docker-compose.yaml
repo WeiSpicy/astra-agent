@@ -1,6 +1,6 @@
 services:
   astra_agent_demo:
-    image: weispicy/astra_agent_demo:1.0.9
+    image: your_username/astra_agent_demo:1.0.16
     container_name: astra_agent_demo
     ports:
       - "8084:8000"
