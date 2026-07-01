@@ -110,14 +110,23 @@ astra_agent/
 │   ├── test_memory.py
 │   ├── test_now.py
 │   ├── test_planner.py
+│   ├── test_rag.py               # RAG 检索与回答测试
 │   ├── test_tools.py
+│   ├── test_vector_store.py      # FAISS 向量库并发安全测试
 │   └── test_workflow_executor.py
 │
-├── eval/                         #   模型决策质量评估
-│   ├── dataset_intent.py
-│   ├── dataset_planner.py
-│   ├── run_intent_eval.py
-│   └── run_planner_eval.py
+├── eval/                         # 模型决策质量评估（离线，不调 LLM 或仅调检索）
+│   ├── dataset_intent.py         # 意图路由数据集
+│   ├── dataset_planner.py        # Planner 结构校验数据集
+│   ├── dataset_rag.py            # RAG 检索 hit@k 数据集
+│   ├── baseline_rag.json         # RAG 检索 expected_hit1 基线（独立 JSON）
+│   ├── run_intent_eval.py        # 意图路由准确率评估
+│   ├── run_planner_eval.py       # Planner 结构校验评估
+│   ├── run_rag_eval.py           # RAG 检索 case 级回归评估（hit@1/3/5）
+│   └── results/                  # 评估结果存档
+│       ├── intent-routing/
+│       ├── planner/
+│       └── rag-retrieval/
 │
 ├── frontend/                     # Streamlit 前端
 │   └── streamlit_app.py          # 对话 UI

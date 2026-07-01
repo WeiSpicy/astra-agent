@@ -1,0 +1,15 @@
+{
+  "fastapi-intro": "pass",
+  "fastapi-di": "pass",
+  "gil-cpu": "pass",
+  "gil-mechanism": "pass",
+  "threading-usecase": "known_fail",
+  "asyncio-usage": "pass",
+  "joke-programmer": "pass",
+  "joke-any": "pass",
+  "concurrency-best": "pass",
+  "gil-concurrency": "pass",
+  "gil-meaning": "pass",
+  "gil-no-parallel": "pass",
+  "gil-313-free": "known_fail"
+}
