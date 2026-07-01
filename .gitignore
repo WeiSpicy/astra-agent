@@ -18,3 +18,4 @@ models/
 vector_store/
 
 keys/
+eval/results/
