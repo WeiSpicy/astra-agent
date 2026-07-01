@@ -13,6 +13,7 @@ logger = setup_logger("Rag vector_store")
 class VectorStoreManager:
     _instance = None
     _lock = threading.Lock()
+    _write_lock = threading.Lock()
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -47,58 +48,59 @@ class VectorStoreManager:
         """
         统一的文档写入方法。
         :param is_rebuild: 如果为 True, 则清空当前库, 重新全量构建；为 False 则代表增量追加。
+        注意: 写操作由 _write_lock 保护，防止并发上传导致 FAISS 索引损坏。
         """
-        # 如果文档为空则初始化一个默认空库
-        if not docs:
-            logger.warning("没有找到任何文档，将创建一个默认空向量库")
-            vectorstore = FAISS.from_texts(
-                texts=["这是一个默认的空知识库。目前还没有上传任何文档。"],
-                embedding=self.embeddings,
-                metadatas=[{"source": "default_empty", "path": "empty", "chunk_id": 0}],
-            )
+        with self._write_lock:
+            # 空文档不做任何操作，避免写入假数据污染检索结果
+            if not docs:
+                logger.warning("add_documents 收到空文档列表，跳过写入")
+                if progress_callback:
+                    progress_callback(100)
+                return self._vectorstore
+
+            if progress_callback: progress_callback(10)
+
+            # 统一准备数据并进行批量向量化
+            texts = [doc["content"] for doc in docs]
+            metadatas = [{"source": doc["source"], "path": doc["path"], "chunk_id": doc["chunk_id"]} for doc in docs]
+
+            vectors = self.embeddings.embed_documents(texts)
+            text_embeddings = list(zip(texts, vectors))
+            total = len(texts)
+
+            # 决定是增量还是全量重构
+            vectorstore = None if is_rebuild else self.get_vectorstore()
+
+            # 分批写入内存
+            for i in range(0, total, batch_size):
+                end_idx = min(i + batch_size, total)
+                batch_data = text_embeddings[i:end_idx]
+                batch_metas = metadatas[i:end_idx]
+
+                if vectorstore is None:
+                    vectorstore = FAISS.from_embeddings(batch_data, self.embeddings, batch_metas)
+                else:
+                    vectorstore.add_embeddings(batch_data, batch_metas)
+
+                if progress_callback:
+                    p = 10 + int((end_idx / total) * 90)
+                    progress_callback(p)
+
+            # 统一持久化与更新状态
             vectorstore.save_local(VECTOR_STORE_DIR)
             self._vectorstore = vectorstore
-            if progress_callback: progress_callback(100)
             return vectorstore
 
-        if progress_callback: progress_callback(10)
-
-        # 统一准备数据并进行批量向量化
-        texts = [doc["content"] for doc in docs]
-        metadatas = [{"source": doc["source"], "path": doc["path"], "chunk_id": doc["chunk_id"]} for doc in docs]
-        
-        vectors = self.embeddings.embed_documents(texts)
-        text_embeddings = list(zip(texts, vectors))
-        total = len(texts)
-
-        # 决定是增量还是全量重构
-        vectorstore = None if is_rebuild else self.get_vectorstore()
-
-        # 分批写入内存
-        for i in range(0, total, batch_size):
-            end_idx = min(i + batch_size, total)
-            batch_data = text_embeddings[i:end_idx]
-            batch_metas = metadatas[i:end_idx]
-
-            if vectorstore is None:
-                vectorstore = FAISS.from_embeddings(batch_data, self.embeddings, batch_metas)
-            else:
-                vectorstore.add_embeddings(batch_data, batch_metas)
-
-            if progress_callback:
-                p = 10 + int((end_idx / total) * 90)
-                progress_callback(p)
-
-        # 统一持久化与更新状态
-        vectorstore.save_local(VECTOR_STORE_DIR)
-        self._vectorstore = vectorstore
-        return vectorstore
-
     def search_docs(self, query: str, top_k: int = 3):
-        vectorstore = self.get_vectorstore()
-        if vectorstore is None:
-            logger.error("请检查向量数据库是否正常构建")
-            return []
-        return vectorstore.similarity_search(query=query, k=top_k)
+        if top_k is None or top_k <= 0:
+            top_k = 3
+        # 持锁保护读操作：FAISS 非线程安全，且防止 get_vectorstore 的磁盘加载
+        # 与 add_documents 的 save_local 并发
+        with self._write_lock:
+            vectorstore = self.get_vectorstore()
+            if vectorstore is None:
+                logger.error("请检查向量数据库是否正常构建")
+                return []
+            return vectorstore.similarity_search(query=query, k=top_k)
 
 vector_manager = VectorStoreManager()

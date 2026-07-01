@@ -11,7 +11,7 @@ logger = setup_logger("rag")
 async def rag_query(request: RAGQueryRequest):
     """RAG 知识检索 + 生成回答"""
     try:
-        result = rag_answer(request.query)
+        result = rag_answer(request.query, top_k=request.top_k)
 
         return RagResponse(
             query=request.query,

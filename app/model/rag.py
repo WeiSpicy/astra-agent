@@ -1,10 +1,10 @@
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class RAGQueryRequest(BaseModel):
     query: str
-    top_k: Optional[int] = 5
+    top_k: Optional[int] = Field(default=3, gt=0)
     
 class RagResponse(BaseModel):
     query: str

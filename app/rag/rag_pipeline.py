@@ -31,8 +31,8 @@ def retrieve(question: str, top_k: int = 3):
 
     return results
 
-def rag_answer(question: str):
-    docs = vector_manager.search_docs(query=question, top_k=3)
+def rag_answer(question: str, top_k: int = 3):
+    docs = vector_manager.search_docs(query=question, top_k=top_k)
 
     if not docs:
         return {
