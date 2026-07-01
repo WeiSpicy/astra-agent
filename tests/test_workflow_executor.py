@@ -155,6 +155,24 @@ class TestRunWorkflow:
 
             assert result["success"] is True
 
+    async def test_empty_steps_triggers_executor_fallback(self):
+        """planner 返回空数组时 executor 兜底为 llm 步骤"""
+        with (
+            patch("app.agent.workflow_executor.plan_steps_async") as mock_plan,
+            patch("app.agent.workflow_executor.chat_with_llm") as mock_llm,
+        ):
+            mock_plan.return_value = []
+            mock_llm.return_value = "你好，有什么可以帮你的？"
+
+            result = await run_workflow(
+                user_input="?", history=[], intent="dynamic"
+            )
+
+            mock_llm.assert_called_once()
+            assert result["steps"][0]["type"] == "llm"
+            assert result["success"] is True
+            assert "帮你" in result["answer"]
+
 class TestRunWorkflowStream:
     async def test_stream_chat_intent_yields_final_event(self):
         """闲聊意图流式输出：产生 status 事件并以 final 结束"""

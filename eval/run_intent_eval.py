@@ -23,7 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.agent.intent import detect_intent
-from eval.dataset import CASES, BOUNDARY_CASES
+from eval.dataset_intent import CASES, BOUNDARY_CASES
 
 BUCKETS = ["chat", "rag", "tool", "dynamic"]
 EVAL_NAME = "intent-routing"

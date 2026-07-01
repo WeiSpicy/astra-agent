@@ -45,6 +45,9 @@ async def run_workflow(user_input: str, history: list, intent: str = "dynamic") 
 
     steps = await plan_steps_async(user_input)
 
+    if not steps:
+        steps = [{"type": "llm", "prompt": f"直接回答用户问题: {user_input}"}]
+
     context = {
         "user_input": user_input,
         "history": history,

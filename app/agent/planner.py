@@ -11,12 +11,13 @@ async def plan_steps_async(user_input: str):
     prompt = f"""[Task]
         Analyze user input and output a strict JSON array of execution steps. Do NOT include markdown tags or trailing text.
 
-        [Business Rules]
-        1. Extract parameters based strictly on specific locations.
-        2. If the user does not specify a city, the 'city' parameter MUST default to '厦门'.
-        3. Strictly FORBIDDEN to use placeholders like 'current_city', or 'unknown'.
-        4. Crucial: If the input is just a greeting or casual chat, the steps list MUST still contain at least [[{{"type": "llm"}}] so the assistant can respond.        
-        
+        [Hard Rules]
+        1. Output MUST contain at least 1 step. Empty array [] is FORBIDDEN.
+        2. The LAST step MUST be {{"type": "llm"}}. No exceptions — even if the plan only has one step.
+        3. If the user does not specify a city, the 'city' parameter MUST default to '厦门'.
+        4. Strictly FORBIDDEN to use placeholders like 'current_city', or 'unknown'.
+        5. Greeting, casual chat, or unrecognizable input → output [{{"type": "llm"}}].
+
         [Available Tools]
         - calc: {{"expression": "math expression"}}
         - now: No args
@@ -25,7 +26,7 @@ async def plan_steps_async(user_input: str):
         [Step Types]
         - tool: For calculation, date/time, or weather.
         - rag: For concepts, definitions, principles. Requires: {{"query": "search query"}}
-        - llm: Final summary. Must be the last step. Strictly ONLY {{"type": "llm"}} without other keys.
+        - llm: Final summary. MUST be present and MUST be the last step. Strictly ONLY {{"type": "llm"}} without other keys.
 
         [User Input]
         {user_input}
@@ -37,6 +38,7 @@ async def plan_steps_async(user_input: str):
             {{"type": "rag", "query": "FastAPI"}},
             {{"type": "llm"}}
         ]"""
+
     try:
         result = await ainvoke_intent_llm(prompt)
         content = result.lower()
