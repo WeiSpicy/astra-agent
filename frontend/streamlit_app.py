@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import json
+import os
 import uuid
 
 # =========================
@@ -114,13 +115,18 @@ unified_css = f"""
 </style>
 """
 
-# 一行代码注入干净的样式
 st.markdown(unified_css, unsafe_allow_html=True)
 
 # =========================
 # 后端请求地址
 # =========================
 BACKEND_URL = "http://127.0.0.1:8000"
+
+# 与后端共享的令牌；非空时请求带上 Authorization 头，为空则不带（本地开发）
+ASTRA_API_TOKEN = os.getenv("ASTRA_API_TOKEN", "")
+AUTH_HEADERS = (
+    {"Authorization": f"Bearer {ASTRA_API_TOKEN}"} if ASTRA_API_TOKEN else {}
+)
 
 # =========================
 # 设置对话session id
@@ -148,16 +154,6 @@ if "session_id" not in st.session_state:
 # 输入框状态控制
 if "is_processing" not in st.session_state:
     st.session_state.is_processing = False
-
-
-# =========================
-# 工具链展示
-# =========================
-def render_tool_chain(tools):
-    if not tools:
-        return
-    st.markdown("**🛠 工具调用链**")
-    st.code(json.dumps(tools, ensure_ascii=False, indent=2), language="json")
 
 
 # =========================
@@ -204,6 +200,7 @@ def stream_response(question: str):
         response = requests.post(
             url,
             json={"question": question, "session_id": st.session_state.session_id},
+            headers=AUTH_HEADERS,
             stream=True,
             timeout=120,
         )
@@ -234,33 +231,18 @@ def stream_response(question: str):
 # 消息渲染
 # =========================
 def render_message(msg):
-    role = msg["role"]
-    bubble_class = "assistant-bubble" if role == "assistant" else "user-bubble"
+    bubble_class = "assistant-bubble" if msg["role"] == "assistant" else "user-bubble"
 
-    if role == "assistant":
-        st.markdown(
-            f"""
-            <div class="chat-row">
-                <div class="chat-bubble {bubble_class}">
-                    {msg["content"]}
-                </div>
+    st.markdown(
+        f"""
+        <div class="chat-row">
+            <div class="chat-bubble {bubble_class}">
+                {msg["content"]}
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            f"""
-            <div class="chat-row" style="justify-content: flex-end;">
-                <div class="chat-bubble {bubble_class}">
-                    {msg["content"]}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    # render_tool_chain(msg.get("tools"))
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 # 渲染历史
@@ -309,7 +291,6 @@ prompt = st.chat_input(
 )
 
 if prompt:
-    # 显示用户消息
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     st.session_state.is_processing = True
@@ -322,23 +303,16 @@ if st.session_state.get("is_processing", False):
 
     render_status(status_placeholder, "等待 AI 思考中...", is_loading=True)
 
-    # 从历史记录中安全获取当前需要的 prompt 文本
     current_prompt = st.session_state.messages[-1]["content"]
 
     for event in stream_response(current_prompt):
         event_type = event.get("event")
         content = event.get("content") or event.get("message", "")
 
-        if event_type in [
-            "status",
-            "step_start",
-            "tool_start",
-            "rag_start",
-            "llm_start",
-        ]:
+        if event_type in ["status", "llm_start"]:
             render_status(status_placeholder, content, is_loading=True)
 
-        elif event_type in ["tool_result", "rag_result", "steps"]:
+        elif event_type == "steps":
             render_status(status_placeholder, content, is_loading=False)
         elif event_type == "token":
             full_answer += content
@@ -369,14 +343,15 @@ if st.session_state.get("is_processing", False):
             status_placeholder.empty()
 
         elif event_type == "error":
-            render_status(status_placeholder, content or "发生错误", is_loading=False)
-
+            # 错误消息入历史再 rerun, 否则重绘后提示丢失
+            st.session_state.messages.append(
+                {"role": "assistant", "content": f"⚠️ {content or '发生错误'}"}
+            )
             st.session_state.is_processing = False
             st.rerun()
 
     # 保存到历史记录
-    if full_answer:
-        st.session_state.messages.append(
+    if full_answer:        st.session_state.messages.append(
             {
                 "role": "assistant",
                 "content": full_answer,

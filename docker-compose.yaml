@@ -14,6 +14,8 @@ services:
       - HF_PROJECT_ID=your_hefeng_project_id
       - HF_PROJECT_KID=your_hefeng_project_kid
       - HF_KEY_DIR=your_public_and_privite_key_path # default -> ./keys
+      # - ENABLE_UPLOAD=false  # 上传端点默认关闭
+      # - ASTRA_API_TOKEN=your_token_here  # 留空则关闭鉴权（仅本地）
     volumes:
       - ./data:/workspace/data
       - ./keys:/workspace/keys

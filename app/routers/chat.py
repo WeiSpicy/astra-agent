@@ -1,11 +1,11 @@
 import asyncio
-from datetime import datetime
 import json
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from app.agent.core import AgentCore
+from app.auth import verify_api_token
 from app.model.chat import ChatRequest
 from app.utils.logger import setup_logger
 
@@ -18,7 +18,7 @@ agent = AgentCore()
 # 基于langchain的非流式对话
 ###########################
 @router.post("")
-async def chat_endpoint(req: ChatRequest):
+async def chat_endpoint(req: ChatRequest, _=Depends(verify_api_token)):
 
     result = await agent.run(req.question, session_id=req.session_id)
     return result
@@ -28,7 +28,7 @@ async def chat_endpoint(req: ChatRequest):
 #######################
 
 @router.post("/stream")
-async def chat_stream(req: ChatRequest):
+async def chat_stream(req: ChatRequest, _=Depends(verify_api_token)):
 
     async def event_generator():
         async for event in agent.stream(req.question, session_id=req.session_id):

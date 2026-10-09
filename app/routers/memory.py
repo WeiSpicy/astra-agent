@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from app.agent.memory import clear_all_histories, get_recent, get_history, clear_user_history
+from app.auth import verify_api_token
 from app.config import MAX_HISTORY
 
 router = APIRouter()
@@ -27,13 +28,14 @@ def get_chat_history(
 # =========================
 @router.delete("/history")
 def clear_history(
-    session_id: str = "default_session"
+    session_id: str = "default_session",
+    _=Depends(verify_api_token),
 ):
     clear_user_history(session_id=session_id)
     return {"message": f"history for session '{session_id}' cleared"}
 
 @router.delete("/history/all")
-def clear_all_users_history():
+def clear_all_users_history(_=Depends(verify_api_token)):
 
     clear_all_histories()
     return {"message": "All session histories in memory have been cleared globally."}

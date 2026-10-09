@@ -3,9 +3,8 @@ import uuid
 
 from fastapi import APIRouter, UploadFile, File
 from pathlib import Path
-import shutil
 
-from app.config import KNOWLEDGE_DIR
+from app.config import KNOWLEDGE_DIR, UPLOAD_MAX_BYTES
 from app.upload.service import process_file
 from app.upload.task_store import task_progress, file_index
 
@@ -31,12 +30,24 @@ async def upload_file(file: UploadFile = File(...)):
     suffix = Path(file.filename).suffix.lower()
 
     if suffix not in [".txt", ".md", ".pdf", ".csv"]:
-        return {"success": False, "message": "仅支持 txt/md/pdf 文件"}
+        return {"success": False, "message": "仅支持 txt/md/pdf/csv 文件"}
 
     save_path = Path(DOCS_DIR) / Path(file.filename).name
 
+    # 分块写入并累计大小，超过上限则删除部分文件，防止磁盘耗尽
+    written = 0
+    too_large = False
     with open(save_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        while chunk := file.file.read(1024 * 1024):
+            written += len(chunk)
+            if written > UPLOAD_MAX_BYTES:
+                too_large = True
+                break
+            buffer.write(chunk)
+
+    if too_large:
+        save_path.unlink(missing_ok=True)
+        return {"success": False, "message": "文件超过大小限制（10MB）"}
 
     # 计算文件内容的 MD5
     new_md5 = file_md5(save_path)

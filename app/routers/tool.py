@@ -1,5 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from app.agent.tools import TOOLS, execute_tool
+from app.auth import verify_api_token
 from app.model.tool import ToolRunRequest
 from app.utils.logger import setup_logger
 
@@ -19,7 +20,7 @@ def list_tools():
     }
 
 @router.post("/run")
-def tool_run(req: ToolRunRequest):
+def tool_run(req: ToolRunRequest, _=Depends(verify_api_token)):
     result = execute_tool(req.tool, req.args)
 
     return {

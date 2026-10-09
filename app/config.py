@@ -20,6 +20,14 @@ KNOWLEDGE_DIR = BASE_DIR / os.getenv("KNOWLEDGE_DIR", "data/knowledge")
 
 CORS_ALLOW_ORIGIN = os.environ.get("CORS_ALLOW_ORIGIN", "*").split(";")
 
+# 上传端点开关：默认关闭（不对外上线）
+ENABLE_UPLOAD = os.getenv("ENABLE_UPLOAD", "false").lower() == "true"
+# 上传文件大小上限
+UPLOAD_MAX_BYTES = 10 * 1024 * 1024
+
+# 共享令牌：非空时 chat/tool/memory 的写端点需携带 Bearer 令牌；留空关闭鉴权（仅本地开发）
+ASTRA_API_TOKEN = os.getenv("ASTRA_API_TOKEN", "")
+
 # 和凤天气
 HF_API_HOST = os.getenv("HF_API_HOST", '')
 HF_PROJECT_ID = os.getenv("HF_PROJECT_ID", '')

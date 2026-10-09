@@ -23,7 +23,7 @@ COPY start.sh .
 RUN chmod +x start.sh
 
 # 暴露端口（FastAPI + Streamlit）
-EXPOSE 8080
+EXPOSE 8000
 EXPOSE 8501
 
 CMD ["bash", "start.sh"]
