@@ -15,8 +15,8 @@ async def detect_intent(text: str) -> str:
 
     判断优先级（严格遵守）:
     1. 如果 chat 兜底 + 单一桶就能覆盖用户需求 → 选那个单一桶，**不要**升级为 dynamic
-       （例："你好，现在几点了" → tool，因为 chat 兜底处理问候 + tool 处理查时间就够了）
-    2. 只有**必须两个及以上不同桶**才能覆盖时 → dynamic（最高优先级）
+       （例："你好，现在几点了" → tool, 因为 chat 兜底处理问候 + tool 处理查时间就够了）
+    2. 只有**必须两个及以上不同桶**才能覆盖时 → dynamic (最高优先级)
     3. 单一明确工具调用 → tool
     4. 询问知识/原理/解释 → rag
     5. 其他全部归为 chat
@@ -27,6 +27,10 @@ async def detect_intent(text: str) -> str:
     """
     
     result = await ainvoke_intent_llm(prompt)
-    intent_name = result.lower()
+    
+    intent_name = result.strip().lower()
+    if intent_name not in {"dynamic", "tool", "rag", "chat"}:
+        intent_name = "dynamic"
+
     logger.info(f"input={text} -> Selected Workflow={intent_name}")
     return intent_name

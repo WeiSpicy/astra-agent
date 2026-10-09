@@ -41,22 +41,24 @@ async def plan_steps_async(user_input: str):
 
     try:
         result = await ainvoke_intent_llm(prompt)
-        content = result.lower()
-        
-        # 清理可能的多余内容
-        if content.startswith("```json"):
-            content = content.split("```json")[1].split("```")[0].strip()
-        elif content.startswith("```"):
-            content = content.split("```")[1].strip()
-             
+
+        content = result.strip()
+        if content.startswith("```"):
+            content = content.split("\n", 1)[-1].removesuffix("```").strip()
+
         steps = json.loads(content)
+
+        for step in steps:
+            step["type"] = step["type"].lower()
+            if "tool" in step:
+                step["tool"] = step["tool"].lower()
             
-        logger.info(f"成功生成步骤: {steps}")
+        logger.debug(f"成功生成步骤: {steps}")
         return steps
         
     except Exception as e:
         logger.error(f"生成失败: {e}\n输出内容: {repr(result) if 'result' in locals() else 'None'}")
         # 降级处理
         return [
-            {"type": "llm", "prompt": f"直接回答用户问题: {user_input}"}
+            {"type": "llm"}
         ]

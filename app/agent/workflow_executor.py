@@ -185,19 +185,34 @@ async def run_workflow_stream(user_input: str, history: list, intent: str = "dyn
 
         await event_queue.put(f"[Tool] 开始调用工具 [{tool_name}] {desc}")
 
-        result = await asyncio.to_thread(execute_tool, tool_name, args)
+        try:
+            result = await asyncio.to_thread(execute_tool, tool_name, args)
+        except Exception as e:
+            logger.exception(f"工具 [{tool_name}] 执行失败")
+            context["tool_results_map"].append(
+                {"tool": tool_name, "args": args, "error": str(e)}
+            )
+            await event_queue.put(f"[Tool] 工具 [{tool_name}] 执行失败: {e}")
+            return
 
         context["tool_results_map"].append(
             {"tool": tool_name, "args": args, "result": result}
         )
-        
+
         await event_queue.put(f"[Tool] 工具 [{tool_name}] 执行完成")
 
     async def worker_rag(step_dict: dict):
         query = step_dict.get("query") or user_input
         await event_queue.put(f"[RAG] 知识库开始检索: '{query}'...")
 
-        docs = await asyncio.to_thread(retrieve, query)
+        try:
+            docs = await asyncio.to_thread(retrieve, query)
+        except Exception as e:
+            logger.exception(f"知识库检索失败: {query}")
+            context["docs"].append(f"检索失败: {e}")
+            await event_queue.put(f"[RAG] 知识库检索失败: {e}")
+            return
+
         context["docs"].extend(docs)
 
         await event_queue.put(f"[RAG] 知识库检索完成, 找到 {len(docs)} 条相关文档")

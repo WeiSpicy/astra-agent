@@ -10,9 +10,7 @@ class TestPlannerFallback:
 
             steps = await plan_steps_async("你好")
 
-            assert steps == [
-                {"type": "llm", "prompt": "直接回答用户问题: 你好"}
-            ]
+            assert steps == [{"type": "llm"}]
 
     async def test_llm_returns_valid_json(self):
         """LLM 返回合法 JSON 时正确解析"""
@@ -35,5 +33,4 @@ class TestPlannerFallback:
 
             steps = await plan_steps_async("帮我查天气")
 
-            assert steps[0]["type"] == "llm"
-            assert "直接回答" in steps[0]["prompt"]
+            assert steps == [{"type": "llm"}]
