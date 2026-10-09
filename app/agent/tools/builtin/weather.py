@@ -59,18 +59,16 @@ def _get_jwt():
     
     now = int(time.time())
     
-    # 如果缓存有效，直接返回
     if JWT_CACHE["token"] and now < JWT_CACHE["expire_at"]:
         return JWT_CACHE["token"]
     
-    # 否则重新生成
     token = _generate_jwt()
     if not token:
         return None
     
-    # 缓存 15 分钟
+    # 缓存 15 分钟, 预留与 iat 一致的 30s 余量, 避免发出临期 token
     JWT_CACHE["token"] = token
-    JWT_CACHE["expire_at"] = now + 900
+    JWT_CACHE["expire_at"] = now + 900 - 30
     
     return token
 
@@ -81,11 +79,12 @@ def _get_city_id(city: str, jwt_token: str):
     if city in CITY_CACHE:
         return CITY_CACHE[city]
     
-    req_url = f"{BASE_URL}{HF_GEO_API_PATH}?location={city}"
-    
+    req_url = f"{BASE_URL}{HF_GEO_API_PATH}"
+
     try:
         resp = requests.get(
             req_url,
+            params={"location": city},
             timeout=5,
             headers={"Authorization": f"Bearer {jwt_token}"}
         )
@@ -109,9 +108,7 @@ def weather(city: str):
     token = _get_jwt()
     if not token:
         return {"error": "无法生成 JWT, 请检查私钥或 KID"}
-     
-    logger.debug(f"生成的JWT token 为: {token}")
-    
+
     # 1. 查询城市 ID
     city_id = _get_city_id(city, token)
     if not city_id:

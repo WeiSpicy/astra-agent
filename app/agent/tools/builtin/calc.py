@@ -38,15 +38,24 @@ SAFE_CONSTANTS = {
 
 def _eval_node(node):
     if isinstance(node, ast.Constant):
+        # 只收数字, 防止 "a"*10**9 这类字符串乘法吃内存
+        if isinstance(node.value, bool) or not isinstance(node.value, (int, float)):
+            raise ValueError("常量只支持数字")
         return node.value
 
     if isinstance(node, ast.BinOp):
         op_type = type(node.op)
         if op_type not in SAFE_BINARY_OPS:
             raise ValueError(f"不支持的运算符: {type(node.op).__name__}")
-        return SAFE_BINARY_OPS[op_type](
-            _eval_node(node.left), _eval_node(node.right),
-        )
+        left = _eval_node(node.left)
+        right = _eval_node(node.right)
+        if op_type is ast.Pow:
+            # 限制幂运算量级, 防止 9**9**9 这类资源耗尽
+            if abs(right) > 1000:
+                raise ValueError("指数过大")
+            if abs(left) > 1 and right * math.log10(abs(left)) > 100:
+                raise ValueError("幂运算结果过大")
+        return SAFE_BINARY_OPS[op_type](left, right)
 
     if isinstance(node, ast.UnaryOp):
         op_type = type(node.op)
